@@ -44,6 +44,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     """User in the system."""
     email = models.EmailField(max_length=255, unique=True)
     name = models.CharField(max_length=255)
+    player_id = models.ForeignKey(
+        'Player',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
@@ -51,3 +57,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
+
+
+class Player(models.Model):
+    """Player object."""
+    name = models.CharField(max_length=255)
+    team = models.CharField(max_length=255)
+    handicap = models.IntegerField(default=3)
+    wins = models.IntegerField(default=0)
+    losses = models.IntegerField(default=0)
+
+    def __str__(self):
+        return self.name
