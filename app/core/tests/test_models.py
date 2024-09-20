@@ -2,17 +2,44 @@
 Tests for models
 """
 from django.test import TestCase
+from django.db.utils import IntegrityError
 from django.contrib.auth import get_user_model
 from core.models import Player, Team, League
+
+import random
+import string
+
+
+def random_string(length=5):
+    return ''.join(random.choices(string.ascii_lowercase, k=length))
+
+
+def create_admin():
+    """Create an admin."""
+
+    return get_user_model().objects.create_admin(
+        random_string() + '@example.com',
+        'test123'
+    )
+
+
+def create_user():
+    """Create a user."""
+
+    return get_user_model().objects.create_user(
+        random_string() + '@example.com',
+        'test123'
+    )
 
 
 def create_league():
     """Create a league."""
     league = League.objects.create(
-        name='Test League',
+        name=random_string(),
         season='Winter',
         year=2021,
-        is_active=True
+        is_active=True,
+        admin=create_admin()
     )
 
     return league
@@ -21,7 +48,7 @@ def create_league():
 def create_player():
     """Create a player."""
     player = Player.objects.create(
-        name='Test Player',
+        name=random_string(),
         handicap=8,
     )
 
@@ -31,7 +58,7 @@ def create_player():
 def create_team():
     """Create a team."""
     team = Team.objects.create(
-        name='Test Team',
+        name=random_string(),
         captain=create_player(),
         league=create_league()
     )
@@ -101,12 +128,14 @@ class TestLeagueModel(TestCase):
         name = 'Test League'
         season = 'Winter'
         year = 2021
+        admin = create_admin()
 
         league = League.objects.create(
             name=name,
             season=season,
             year=year,
-            is_active=True
+            is_active=True,
+            admin=admin
         )
 
         self.assertEqual(league.name, name)
@@ -117,14 +146,11 @@ class TestLeagueModel(TestCase):
     def test_add_admin_to_league(self):
         """Test adding an admin to a league."""
         league = create_league()
-        admin = get_user_model().objects.create_admin(
-            'admin@admin.com',
-            'test123'
-        )
 
-        league.admins.add(admin)
+        additional_admin = create_user()
+        league.additional_admins.add(additional_admin)
 
-        self.assertIn(admin, league.admins.all())
+        self.assertIn(additional_admin, league.additional_admins.all())
 
 
 class TestPlayerModel(TestCase):
@@ -162,3 +188,39 @@ class TestTeamModel(TestCase):
         self.assertEqual(team.name, name)
         self.assertEqual(team.captain, captain)
         self.assertEqual(team.league, league)
+
+    def test_create_team_without_captain_fails(self):
+        """Test that creating a team without a captain raises an error."""
+        league = create_league()
+        with self.assertRaises(IntegrityError):
+            Team.objects.create(name='Team Without Captain', league=league)
+
+
+class TestModelRelationships(TestCase):
+    """Test the many-to-many relationship between Player and Team"""
+
+    def test_player_added_to_multiple_teams(self):
+        """Test a player can belong to multiple teams."""
+        player = create_player()
+        team1 = create_team()
+        team2 = create_team()
+
+        player.teams.add(team1, team2)
+
+        self.assertIn(team1, player.teams.all())
+        self.assertIn(team2, player.teams.all())
+        self.assertIn(player, team1.players.all())
+        self.assertIn(player, team2.players.all())
+
+    def test_delete_league_deletes_teams(self):
+        """Test that deleting a league also deletes associated teams."""
+        league = create_league()
+        team = Team.objects.create(
+            name='Test Team',
+            captain=create_player(),
+            league=league
+        )
+
+        league.delete()
+
+        self.assertEqual(Team.objects.filter(league=league).count(), 0)

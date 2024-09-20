@@ -67,10 +67,17 @@ class League(models.Model):
     season = models.CharField(max_length=255)
     year = models.IntegerField()
     is_active = models.BooleanField(default=True)
-    admins = models.ManyToManyField(
+
+    admin = models.ForeignKey(
         get_user_model(),
-        related_name='leagues_administered',
-        blank=False
+        on_delete=models.CASCADE,  # If the admin is deleted, the league is deleted
+        related_name='leagues_administered'
+    )
+
+    additional_admins = models.ManyToManyField(
+        get_user_model(),
+        related_name='leagues_with_admin_privileges',
+        blank=True
     )
 
     def __str__(self):
@@ -88,7 +95,8 @@ class Team(models.Model):
     captain = models.ForeignKey(
         'Player',
         on_delete=models.CASCADE,
-        related_name='teams_captained'
+        related_name='teams_captained',
+        null=False
     )
 
     def __str__(self):
