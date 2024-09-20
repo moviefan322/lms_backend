@@ -119,6 +119,20 @@ class TestUserModel(TestCase):
         self.assertFalse(user.is_superuser)
         self.assertFalse(user.is_staff)
 
+    def test_user_email_uniqueness(self):
+        """Test that creating a user with a duplicate email raises an error."""
+        email = 'test@example.com'
+        get_user_model().objects.create_user(
+            email=email,
+            password='password123',
+        )
+
+        with self.assertRaises(IntegrityError):
+            get_user_model().objects.create_user(
+                email=email,
+                password='password123',
+            )
+
 
 class TestLeagueModel(TestCase):
     """Test League model and related functionality"""
@@ -151,6 +165,16 @@ class TestLeagueModel(TestCase):
         league.additional_admins.add(additional_admin)
 
         self.assertIn(additional_admin, league.additional_admins.all())
+
+    def test_prevent_duplicate_player_in_team(self):
+        """Test that a player cannot be added to a team multiple times."""
+        player = create_player()
+        team = create_team()
+
+        player.teams.add(team)
+        player.teams.add(team)
+
+        self.assertEqual(player.teams.filter(id=team.id).count(), 1)
 
 
 class TestPlayerModel(TestCase):
@@ -215,12 +239,19 @@ class TestModelRelationships(TestCase):
     def test_delete_league_deletes_teams(self):
         """Test that deleting a league also deletes associated teams."""
         league = create_league()
-        team = Team.objects.create(
+        Team.objects.create(
             name='Test Team',
             captain=create_player(),
             league=league
         )
+        Team.objects.create(
+            name='Test Team2',
+            captain=create_player(),
+            league=league
+        )
+
+        league_id = league.id
 
         league.delete()
 
-        self.assertEqual(Team.objects.filter(league=league).count(), 0)
+        self.assertEqual(Team.objects.filter(league_id=league_id).count(), 0)

@@ -3,7 +3,6 @@ Database models
 """
 from django.db import models
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -70,7 +69,7 @@ class League(models.Model):
 
     admin = models.ForeignKey(
         get_user_model(),
-        on_delete=models.CASCADE,  # If the admin is deleted, the league is deleted
+        on_delete=models.CASCADE,
         related_name='leagues_administered'
     )
 

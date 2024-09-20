@@ -15,12 +15,13 @@ from player.serializers import PlayerSerializer, PlayerDetailSerializer
 
 PLAYER_URL = reverse('player:player-list')
 
+
 class PublicPlayerScoreApiTests(TestCase):
     """Test the player API"""
 
     def setUp(self):
         self.client = APIClient()
-    
+
     def test_create_player_unauthorized(self):
         """Test that admin auth is required for creating a player"""
         payload = {
