@@ -3,6 +3,7 @@ Database models
 """
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -45,7 +46,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     """User in the system."""
     email = models.EmailField(max_length=255, unique=True)
     name = models.CharField(max_length=255)
-    player_id = models.ForeignKey(
+    player_profile = models.ForeignKey(
         'Player',
         on_delete=models.CASCADE,
         null=True,
@@ -65,6 +66,7 @@ class League(models.Model):
     name = models.CharField(max_length=255)
     season = models.CharField(max_length=255)
     year = models.IntegerField()
+    is_active = models.BooleanField(default=True)
     admins = models.ManyToManyField(
         get_user_model(),
         related_name='leagues_administered',
@@ -84,7 +86,7 @@ class Team(models.Model):
         related_name='teams'
     )
     captain = models.ForeignKey(
-        get_user_model(),
+        'Player',
         on_delete=models.CASCADE,
         related_name='teams_captained'
     )

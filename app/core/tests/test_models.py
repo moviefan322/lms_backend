@@ -93,6 +93,40 @@ class TestUserModel(TestCase):
         self.assertFalse(user.is_staff)
 
 
+class TestLeagueModel(TestCase):
+    """Test League model and related functionality"""
+
+    def test_create_league(self):
+        """Test creating a league."""
+        name = 'Test League'
+        season = 'Winter'
+        year = 2021
+
+        league = League.objects.create(
+            name=name,
+            season=season,
+            year=year,
+            is_active=True
+        )
+
+        self.assertEqual(league.name, name)
+        self.assertEqual(league.season, season)
+        self.assertEqual(league.year, year)
+        self.assertTrue(league.is_active)
+
+    def test_add_admin_to_league(self):
+        """Test adding an admin to a league."""
+        league = create_league()
+        admin = get_user_model().objects.create_admin(
+            'admin@admin.com',
+            'test123'
+        )
+
+        league.admins.add(admin)
+
+        self.assertIn(admin, league.admins.all())
+
+
 class TestPlayerModel(TestCase):
     """Test Player model and related functionality"""
 
@@ -108,3 +142,23 @@ class TestPlayerModel(TestCase):
 
         self.assertEqual(player.name, name)
         self.assertEqual(player.handicap, rank)
+
+
+class TestTeamModel(TestCase):
+    """Test Team model and related functionality"""
+
+    def test_create_team(self):
+        """Test creating a team."""
+        name = 'Test Team'
+        captain = create_player()
+        league = create_league()
+
+        team = Team.objects.create(
+            name=name,
+            captain=captain,
+            league=league
+        )
+
+        self.assertEqual(team.name, name)
+        self.assertEqual(team.captain, captain)
+        self.assertEqual(team.league, league)
