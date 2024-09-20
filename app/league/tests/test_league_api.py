@@ -101,7 +101,6 @@ class AdminLeagueApiTests(TestCase):
         league = League.objects.get(id=res.data['id'])
         for key in payload.keys():
             self.assertEqual(payload[key], getattr(league, key))
-        # Check admin is set correctly
         self.assertEqual(league.admin, self.admin_user)
 
     def test_update_league(self):
@@ -161,3 +160,137 @@ class AdminLeagueApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
         self.assertTrue(League.objects.filter(id=other_league.id).exists())
+
+
+class AdditionalAdminLeagueApiTests(TestCase):
+    """Test additional admins' permissions in the league API."""
+
+    def setUp(self):
+        self.client = APIClient()
+
+        self.admin_user = get_user_model().objects.create_user(
+            'admin@example.com',
+            'test123',
+            is_admin=True,
+        )
+        self.additional_admin_user = get_user_model().objects.create_user(
+            'additionaladmin@example.com',
+            'test123',
+            is_admin=True,
+        )
+        self.other_user = get_user_model().objects.create_user(
+            'user@example.com',
+            'test123',
+            is_admin=False,
+        )
+
+        self.client.force_authenticate(self.admin_user)
+
+    def test_additional_admin_can_modify_league(self):
+        """Test that an additional admin can modify the league."""
+        league = create_league(admin_user=self.admin_user)
+        league.additional_admins.add(self.additional_admin_user)
+
+        self.client.force_authenticate(self.additional_admin_user)
+
+        payload = {
+            'name': 'Updated by Additional Admin',
+            'season': 'Fall',
+            'year': 2023,
+            'is_active': False,
+        }
+
+        url = detail_url(league.id)
+        res = self.client.patch(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        league.refresh_from_db()
+        self.assertEqual(league.name, payload['name'])
+        self.assertEqual(league.season, payload['season'])
+        self.assertEqual(league.year, payload['year'])
+        self.assertFalse(league.is_active)
+
+    def test_additional_admin_can_delete_league(self):
+        """Test that an additional admin can delete the league."""
+        league = create_league(admin_user=self.admin_user)
+        league.additional_admins.add(self.additional_admin_user)
+
+        self.client.force_authenticate(self.additional_admin_user)
+
+        url = detail_url(league.id)
+        res = self.client.delete(url)
+
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+
+        self.assertFalse(League.objects.filter(id=league.id).exists())
+
+    def test_non_admin_cannot_modify_league(self):
+        """Test that a non-admin user cannot modify the league."""
+        league = create_league(admin_user=self.admin_user)
+        league.additional_admins.add(self.additional_admin_user)
+
+        # Log in as a non-admin user
+        self.client.force_authenticate(self.other_user)
+
+        payload = {
+            'name': 'Unauthorized Update',
+            'season': 'Spring',
+            'year': 2024,
+        }
+
+        url = detail_url(league.id)
+        res = self.client.patch(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+        league.refresh_from_db()
+        self.assertNotEqual(league.name, payload['name'])
+
+    def test_non_admin_cannot_delete_league(self):
+        """Test that a non-admin user cannot delete the league."""
+        league = create_league(admin_user=self.admin_user)
+        league.additional_admins.add(self.additional_admin_user)
+
+        self.client.force_authenticate(self.other_user)
+
+        url = detail_url(league.id)
+        res = self.client.delete(url)
+
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+        self.assertTrue(League.objects.filter(id=league.id).exists())
+
+    def test_main_admin_can_modify_league(self):
+        """Test that the main admin can modify the league."""
+        league = create_league(admin_user=self.admin_user)
+        league.additional_admins.add(self.additional_admin_user)
+
+        payload = {
+            'name': 'Main Admin Update',
+            'season': 'Spring',
+            'year': 2023,
+        }
+
+        url = detail_url(league.id)
+        res = self.client.patch(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        league.refresh_from_db()
+        self.assertEqual(league.name, payload['name'])
+        self.assertEqual(league.season, payload['season'])
+        self.assertEqual(league.year, payload['year'])
+
+    def test_main_admin_can_delete_league(self):
+        """Test that the main admin can delete the league."""
+        league = create_league(admin_user=self.admin_user)
+        league.additional_admins.add(self.additional_admin_user)
+
+        url = detail_url(league.id)
+        res = self.client.delete(url)
+
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Verify the league was deleted
+        self.assertFalse(League.objects.filter(id=league.id).exists())
