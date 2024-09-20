@@ -3,7 +3,40 @@ Tests for models
 """
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from core.models import Player
+from core.models import Player, Team, League
+
+
+def create_league():
+    """Create a league."""
+    league = League.objects.create(
+        name='Test League',
+        season='Winter',
+        year=2021,
+        is_active=True
+    )
+
+    return league
+
+
+def create_player():
+    """Create a player."""
+    player = Player.objects.create(
+        name='Test Player',
+        handicap=8,
+    )
+
+    return player
+
+
+def create_team():
+    """Create a team."""
+    team = Team.objects.create(
+        name='Test Team',
+        captain=create_player(),
+        league=create_league()
+    )
+
+    return team
 
 
 class TestUserModel(TestCase):
@@ -67,14 +100,11 @@ class TestPlayerModel(TestCase):
         """Test creating a player."""
         name = 'Test Player'
         rank = 8
-        team = 'Test Team'
-        
+
         player = Player.objects.create(
             name=name,
             handicap=rank,
-            team=team
         )
 
         self.assertEqual(player.name, name)
         self.assertEqual(player.handicap, rank)
-        self.assertEqual(player.team, team)

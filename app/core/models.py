@@ -2,6 +2,7 @@
 Database models
 """
 from django.db import models
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -59,10 +60,47 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
 
 
+class League(models.Model):
+    """League object."""
+    name = models.CharField(max_length=255)
+    season = models.CharField(max_length=255)
+    year = models.IntegerField()
+    admins = models.ManyToManyField(
+        get_user_model(),
+        related_name='leagues_administered',
+        blank=False
+    )
+
+    def __str__(self):
+        return self.name
+
+
+class Team(models.Model):
+    """Team object."""
+    name = models.CharField(max_length=255)
+    league = models.ForeignKey(
+        'League',
+        on_delete=models.CASCADE,
+        related_name='teams'
+    )
+    captain = models.ForeignKey(
+        get_user_model(),
+        on_delete=models.CASCADE,
+        related_name='teams_captained'
+    )
+
+    def __str__(self):
+        return self.name
+
+
 class Player(models.Model):
     """Player object."""
     name = models.CharField(max_length=255)
-    team = models.CharField(max_length=255)
+    teams = models.ManyToManyField(
+        'Team',
+        related_name='players',
+        blank=True
+    )
     handicap = models.IntegerField(default=3)
     wins = models.IntegerField(default=0)
     losses = models.IntegerField(default=0)
