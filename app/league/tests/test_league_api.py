@@ -99,9 +99,23 @@ class AdminLeagueApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
 
         league = League.objects.get(id=res.data['id'])
+        serializer = LeagueSerializer(league)
+        self.assertEqual(res.data, serializer.data)
         for key in payload.keys():
             self.assertEqual(payload[key], getattr(league, key))
         self.assertEqual(league.admin, self.admin_user)
+
+    def test_get_league_detail(self):
+        """Test retrieving a league's detail."""
+        league = create_league(admin_user=self.admin_user)
+
+        url = detail_url(league.id)
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        serializer = LeagueSerializer(league)
+        self.assertEqual(res.data, serializer.data)
 
     def test_update_league(self):
         """Test updating a league."""
@@ -113,9 +127,13 @@ class AdminLeagueApiTests(TestCase):
             'is_active': False,
         }
         url = detail_url(league.id)
-        self.client.patch(url, payload)
+        res = self.client.patch(url, payload)
 
         league.refresh_from_db()
+
+        serializer = LeagueSerializer(league)
+        self.assertEqual(res.data, serializer.data)
+
         for key in payload.keys():
             self.assertEqual(payload[key], getattr(league, key))
         self.assertEqual(league.admin, self.admin_user)
@@ -206,6 +224,8 @@ class AdditionalAdminLeagueApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
         league.refresh_from_db()
+        serializer = LeagueSerializer(league)
+        self.assertEqual(res.data, serializer.data)
         self.assertEqual(league.name, payload['name'])
         self.assertEqual(league.season, payload['season'])
         self.assertEqual(league.year, payload['year'])
@@ -292,5 +312,80 @@ class AdditionalAdminLeagueApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
 
-        # Verify the league was deleted
         self.assertFalse(League.objects.filter(id=league.id).exists())
+
+
+# class UserLeagueApiTests(TestCase):
+#     """Test league API access for league members."""
+
+#     def setUp(self):
+#         self.client = APIClient()
+
+#         self.admin_user = get_user_model().objects.create_user(
+#             'admin@example.com',
+#             'test123',
+#             is_admin=True,
+#         )
+#         self.user = get_user_model().objects.create_user(
+#             'user@example.com',
+#             'test123',
+#             is_admin=False,
+#         )
+#         self.other_user = get_user_model().objects.create_user(
+#             'otheruser@example.com',
+#             'test123',
+#             is_admin=False,
+#         )
+
+#         self.league = create_league(admin_user=self.admin_user)
+#         self.league.players.add(self.user)
+
+#     def test_user_can_read_league_detail(self):
+#         """Test that league user can read the league's details."""
+#         self.client.force_authenticate(self.user)
+
+#         url = detail_url(self.league.id)
+#         res = self.client.get(url)
+
+#         self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+#         serializer = LeagueSerializer(self.league)
+#         self.assertEqual(res.data, serializer.data)
+
+#     def test_user_cannot_modify_league(self):
+#         """Test that a regular user cannot modify the league."""
+#         self.client.force_authenticate(self.user)
+
+#         payload = {
+#             'name': 'Unauthorized Update',
+#             'season': 'Spring',
+#             'year': 2023,
+#         }
+
+#         url = detail_url(self.league.id)
+#         res = self.client.patch(url, payload)
+
+#         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+#         self.league.refresh_from_db()
+#         self.assertNotEqual(self.league.name, payload['name'])
+
+#     def test_user_cannot_delete_league(self):
+#         """Test that a regular user cannot delete the league."""
+#         self.client.force_authenticate(self.user)
+
+#         url = detail_url(self.league.id)
+#         res = self.client.delete(url)
+
+#         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+#         self.assertTrue(League.objects.filter(id=self.league.id).exists())
+
+#     def test_other_user_cannot_access_league(self):
+#         """Test non-league user cannot access its details."""
+#         self.client.force_authenticate(self.other_user)
+
+#         url = detail_url(self.league.id)
+#         res = self.client.get(url)
+
+#         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)

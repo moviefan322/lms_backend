@@ -18,8 +18,8 @@ class LeagueViewSet(viewsets.ModelViewSet):
 
         # Return leagues where the user is an admin or part of the league
         return League.objects.filter(
-            models.Q(admin=user) | 
-            models.Q(additional_admins=user) | 
+            models.Q(admin=user) |
+            models.Q(additional_admins=user) |
             models.Q(teams__players__user=user)
         ).distinct()
 

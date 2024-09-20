@@ -10,26 +10,24 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return request.user.is_authenticated
 
-        # Skip league admin check for POST (league creation)
         if request.method == 'POST':
             return request.user.is_authenticated and request.user.is_admin
 
-        # For other write operations, ensure the user is an admin or additional admin
         league = None
         if 'pk' in view.kwargs:
             league = League.objects.get(pk=view.kwargs['pk'])
-        
+
         return request.user.is_authenticated and (
-            request.user == league.admin or 
+            request.user == league.admin or
             request.user in league.additional_admins.all()
         )
 
-
     def has_object_permission(self, request, view, obj):
-        """Object-level permission for read-only access and admin-only modifications"""
-        # Allow read access to any authenticated user
+        """Object-level permission for RO access and admin modifications"""
         if request.method in permissions.SAFE_METHODS:
             return request.user.is_authenticated
 
-        # Only allow admin or additional admins to modify the object
-        return request.user == obj.admin or request.user in obj.additional_admins.all()
+        return request.user == obj.admin or (
+            request.user in
+            obj.additional_admins.all()
+        )
