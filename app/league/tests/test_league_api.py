@@ -79,6 +79,11 @@ class AdminLeagueApiTests(TestCase):
             'test123',
             is_admin=True,
         )
+        self.other_admin_user = get_user_model().objects.create_user(
+            'otheradmin@example.com',
+            'test123',
+            is_admin=True,
+        )
         self.client.force_authenticate(self.admin_user)
 
     def test_create_league_successful(self):
@@ -114,5 +119,45 @@ class AdminLeagueApiTests(TestCase):
         league.refresh_from_db()
         for key in payload.keys():
             self.assertEqual(payload[key], getattr(league, key))
-        # Ensure admin is unchanged
         self.assertEqual(league.admin, self.admin_user)
+
+    def test_admin_cannot_modify_another_admins_league(self):
+        """Test that an admin cannot modify another admin's league."""
+        other_league = create_league(admin_user=self.other_admin_user)
+
+        payload = {
+            'name': 'Unauthorized Update',
+            'season': 'Summer',
+            'year': 2023,
+            'is_active': False,
+        }
+
+        url = detail_url(other_league.id)
+        res = self.client.patch(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+        other_league.refresh_from_db()
+        self.assertNotEqual(other_league.name, payload['name'])
+
+    def test_admin_can_delete_own_league(self):
+        """Test that an admin can delete their own league."""
+        league = create_league(admin_user=self.admin_user)
+
+        url = detail_url(league.id)
+        res = self.client.delete(url)
+
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+
+        self.assertFalse(League.objects.filter(id=league.id).exists())
+
+    def test_admin_cannot_delete_another_admins_league(self):
+        """Test that an admin cannot delete another admin's league."""
+        other_league = create_league(admin_user=self.other_admin_user)
+
+        url = detail_url(other_league.id)
+        res = self.client.delete(url)
+
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+        self.assertTrue(League.objects.filter(id=other_league.id).exists())
