@@ -250,7 +250,6 @@ class AdditionalAdminLeagueApiTests(TestCase):
         league = create_league(admin_user=self.admin_user)
         league.additional_admins.add(self.additional_admin_user)
 
-        # Log in as a non-admin user
         self.client.force_authenticate(self.other_user)
 
         payload = {

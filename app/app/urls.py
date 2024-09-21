@@ -30,4 +30,5 @@ urlpatterns = [
     ),
     path('api/user/', include('user.urls')),
     path('api/league/', include('league.urls')),
+    path('api/team/', include('team.urls')),
 ]
