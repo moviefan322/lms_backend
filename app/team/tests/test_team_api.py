@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from core.models import Team, League, Player
-from league.serializers import TeamSerializer
+from team.serializers import TeamSerializer
 from core.tests.test_models import random_string, create_admin
 
 TEAMS_URL = reverse('team:team-list')
@@ -69,7 +69,8 @@ class PublicTeamApiTests(TestCase):
 
     def test_get_team_detail_unauthorized(self):
         """Test that authentication is required to get team detail"""
-        team = create_team(create_admin())
+        league = create_league(create_admin())
+        team = create_team(league)
         url = detail_url(team.id)
         res = self.client.get(url)
 
@@ -137,9 +138,11 @@ class AdminTeamApiTests(TestCase):
 
     def test_create_team_invalid(self):
         """Test creating a team with invalid payload fails."""
+        league = create_league(self.admin_user)
+
         payload = {
             'name': '',
-            'league': '',
+            'league': league.id,
             'captain': '',
         }
         res = self.client.post(TEAMS_URL, payload)
@@ -218,8 +221,7 @@ class AdminTeamApiTests(TestCase):
         }
         res = self.client.post(TEAMS_URL, payload)
 
-        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(res.data['league'][0].code, 'invalid')
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_admin_cannot_update_team_for_other_league(self):
         """Test that admin cannot update a team for another league"""
@@ -233,8 +235,7 @@ class AdminTeamApiTests(TestCase):
         url = detail_url(team.id)
         res = self.client.put(url, payload)
 
-        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(res.data['league'][0].code, 'invalid')
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_admin_cannot_delete_team_for_other_league(self):
         """Test that admin cannot delete a team for another league"""
@@ -243,8 +244,7 @@ class AdminTeamApiTests(TestCase):
         url = detail_url(team.id)
         res = self.client.delete(url)
 
-        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(res.data['league'][0].code, 'invalid')
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
 
 class AdditionAdminLeagueApiTests(TestCase):
@@ -268,6 +268,13 @@ class AdditionAdminLeagueApiTests(TestCase):
             'test123',
             is_admin=False,
         )
+        player_profile = create_player(name='Player 1')
+        self.other_user.player_profile = player_profile
+        self.other_user.save()
+
+        self.league = create_league(self.admin_user)
+        self.team = create_team(self.league)
+        self.team.players.add(self.other_user.player_profile)
 
         self.client.force_authenticate(self.admin_user)
 
@@ -350,16 +357,15 @@ class AdditionAdminLeagueApiTests(TestCase):
     def test_user_cannot_update_team(self):
         """Test that a user cannot update a team"""
         league = create_league(self.admin_user)
-        team = create_team(league)
-
-        self.client.force_authenticate(self.other_user)
 
         payload = {
             'name': random_string(),
             'league': league.id,
             'captain': create_player().id,
         }
-        url = detail_url(team.id)
+
+        self.client.force_authenticate(self.other_user)
+        url = detail_url(self.team.id)
         res = self.client.put(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
@@ -367,39 +373,47 @@ class AdditionAdminLeagueApiTests(TestCase):
     def test_user_cannot_delete_team(self):
         """Test that a user cannot delete a team"""
         league = create_league(self.admin_user)
-        team = create_team(league)
+        create_team(league)
 
         self.client.force_authenticate(self.other_user)
 
-        url = detail_url(team.id)
+        url = detail_url(self.team.id)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_user_can_retrieve_teams(self):
-        """Test that a user can retrieve a list of teams"""
+        """Test that a user can retrieve a list of teams in their league."""
+        self.other_user.player_profile.teams.clear()
         league = create_league(self.admin_user)
-        create_team(league)
-        create_team(league)
+
+        team1 = create_team(league=league)
+        create_team(league=league)
+
+        team1.players.add(self.other_user.player_profile)
 
         self.client.force_authenticate(self.other_user)
 
         res = self.client.get(TEAMS_URL)
 
-        teams = Team.objects.all().order_by('name')
+        teams = Team.objects.filter(league=league).order_by('name')
         serializer = TeamSerializer(teams, many=True)
+
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
         self.assertEqual(len(res.data), 2)
 
     def test_user_can_get_team_detail(self):
-        """Test that a user can retrieve a team detail"""
+        """Test that a user can retrieve a team detail."""
+        self.other_user.player_profile.teams.clear()
+
         league = create_league(self.admin_user)
-        team = create_team(league)
-        url = detail_url(team.id)
+        team = create_team(league, captain=self.other_user.player_profile)
+        team.players.add(self.other_user.player_profile)
 
         self.client.force_authenticate(self.other_user)
 
+        url = detail_url(team.id)
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)

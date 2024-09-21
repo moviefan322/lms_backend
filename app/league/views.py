@@ -16,7 +16,6 @@ class LeagueViewSet(viewsets.ModelViewSet):
         """Return leagues the current authenticated user is associated with."""
         user = self.request.user
 
-        # Return leagues where the user is an admin or part of the league
         return League.objects.filter(
             models.Q(admin=user) |
             models.Q(additional_admins=user) |
