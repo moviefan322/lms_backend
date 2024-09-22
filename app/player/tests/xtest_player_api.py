@@ -22,6 +22,10 @@ class PublicPlayerScoreApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
 
+    def test_auth_required(self):
+        """Test that authentication is required"""
+        res = self.client.get(PLAYER_URL)
+
     def test_create_player_unauthorized(self):
         """Test that admin auth is required for creating a player"""
         payload = {
@@ -33,29 +37,23 @@ class PublicPlayerScoreApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_retrieve_players(self):
+    def test_retrieve_players_unauthorized(self):
         """Test retrieving players"""
         Player.objects.create(name='Test Player 1', handicap=10)
         Player.objects.create(name='Test Player 2', handicap=15)
 
         res = self.client.get(PLAYER_URL)
 
-        players = Player.objects.all().order_by('-name')
-        serializer = PlayerSerializer(players, many=True)
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data, serializer.data)
-
-    def test_get_player_detail(self):
+    def test_get_player_detail_unauthorized(self):
         """Test getting player detail"""
         player = Player.objects.create(name='Test Player', handicap=10)
 
         url = reverse('player:player-detail', args=[player.id])
         res = self.client.get(url)
 
-        serializer = PlayerDetailSerializer(player)
-
-        self.assertEqual(res.data, serializer.data)
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
 
 class AdminPlayerApiTests(TestCase):

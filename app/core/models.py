@@ -65,6 +65,14 @@ class League(models.Model):
     name = models.CharField(max_length=255)
     season = models.CharField(max_length=255)
     year = models.IntegerField()
+    handicap_type = models.CharField(
+        max_length=20, choices=[
+            ('integer', 'Integer'),
+            ('letter', 'Letter'),
+            ('custom', 'Custom')
+        ],
+        default='integer'
+    )
     is_active = models.BooleanField(default=True)
 
     admin = models.ForeignKey(
