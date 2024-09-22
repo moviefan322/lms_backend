@@ -3,11 +3,16 @@ Database models
 """
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
     PermissionsMixin
 )
+
+
+def default_handicap_range():
+    return ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 
 
 class UserManager(BaseUserManager):
@@ -65,13 +70,9 @@ class League(models.Model):
     name = models.CharField(max_length=255)
     season = models.CharField(max_length=255)
     year = models.IntegerField()
-    handicap_type = models.CharField(
-        max_length=20, choices=[
-            ('integer', 'Integer'),
-            ('letter', 'Letter'),
-            ('custom', 'Custom')
-        ],
-        default='integer'
+    handicap_range = ArrayField(
+        models.CharField(max_length=5),
+        default=default_handicap_range
     )
     is_active = models.BooleanField(default=True)
 
