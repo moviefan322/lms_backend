@@ -68,8 +68,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 class League(models.Model):
     """League object."""
     name = models.CharField(max_length=255)
-    season = models.CharField(max_length=255)
-    year = models.IntegerField()
     handicap_range = ArrayField(
         models.CharField(max_length=5),
         default=default_handicap_range
@@ -92,11 +90,26 @@ class League(models.Model):
         return self.name
 
 
+class Season(models.Model):
+    """Season object. A season is tied to a league and has teams."""
+    name = models.CharField(max_length=255)
+    year = models.IntegerField()
+    league = models.ForeignKey(
+        League, on_delete=models.CASCADE, related_name='seasons')
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('name', 'year', 'league')
+
+    def __str__(self):
+        return f"{self.name} ({self.year})"
+
+
 class Team(models.Model):
     """Team object."""
     name = models.CharField(max_length=255)
-    league = models.ForeignKey(
-        'League',
+    season = models.ForeignKey(
+        'Season',
         on_delete=models.CASCADE,
         related_name='teams'
     )
@@ -111,17 +124,42 @@ class Team(models.Model):
         return self.name
 
 
+class TeamSeason(models.Model):
+    """Intermediary model for tracking team stats in a specific season."""
+    team = models.ForeignKey(Team, on_delete=models.CASCADE)
+    season = models.ForeignKey(Season, on_delete=models.CASCADE)
+    wins = models.IntegerField(default=0)
+    losses = models.IntegerField(default=0)
+    games_won = models.IntegerField(default=0)
+    games_lost = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f'{self.team.name} in {self.season.name} ({self.season.year})'
+
+
 class Player(models.Model):
     """Player object."""
     name = models.CharField(max_length=255)
     teams = models.ManyToManyField(
-        'Team',
+        'TeamSeason',
+        through='TeamPlayer',
         related_name='players',
         blank=True
     )
-    handicap = models.IntegerField(default=3)
-    wins = models.IntegerField(default=0)
-    losses = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
+
+
+class TeamPlayer(models.Model):
+    """TeamPlayer object."""
+    team_season = models.ForeignKey('TeamSeason', on_delete=models.CASCADE)
+    player = models.ForeignKey('Player', on_delete=models.CASCADE)
+    handicap = models.IntegerField(default=3)
+    wins = models.IntegerField(default=0)
+    losses = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f'{self.team_season} - {self.player}'
