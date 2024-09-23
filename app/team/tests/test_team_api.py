@@ -41,6 +41,7 @@ def create_player(**params):
 
     return Player.objects.create(**defaults)
 
+
 def create_season(league, **params):
     """Create and return a sample season"""
     defaults = {
@@ -51,6 +52,7 @@ def create_season(league, **params):
     defaults.update(params)
 
     return Season.objects.create(**defaults)
+
 
 def create_team(season, **params):
     """Create and return a sample team"""
@@ -394,7 +396,7 @@ class AdditionAdminLeagueApiTests(TestCase):
         """Test that a user cannot delete a team"""
         league = create_league(self.admin_user)
         season = create_season(league)
-        team = create_team(season)
+        create_team(season)
 
         self.client.force_authenticate(self.other_user)
 

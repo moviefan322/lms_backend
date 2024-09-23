@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import League  #Season
+from core.models import League  # Season
 
 
 class LeagueSerializer(serializers.ModelSerializer):

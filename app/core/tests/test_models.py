@@ -171,21 +171,18 @@ class TestLeagueModel(TestCase):
         self.assertIn(additional_admin, league.additional_admins.all())
 
     def test_prevent_duplicate_player_in_team(self):
-        """Test that a player cannot be added to a team multiple times in the same season."""
+        """Test that a player cannot be added to a team
+        multiple times in the same season."""
         player = create_player()
         season = create_season(league=create_league())
         team = create_team(season=season)
 
-        # Create the TeamSeason instance
         team_season = TeamSeason.objects.create(team=team, season=season)
 
-        # Add the player to the team season once
         player.teams.add(team_season)
 
-        # Try to add the same player to the same team season again
         player.teams.add(team_season)
 
-        # Assert that the player is only added once to the team season
         self.assertEqual(player.teams.filter(id=team_season.id).count(), 1)
 
 
@@ -236,7 +233,8 @@ class TestModelRelationships(TestCase):
     def test_player_added_to_multiple_teams(self):
         """Test a player can belong to multiple teams."""
         player = create_player()
-        season1 = create_season(league=create_league())  # Create seasons for the teams
+        # Create seasons for the teams
+        season1 = create_season(league=create_league())
         season2 = create_season(league=create_league())
 
         team1 = create_team(season=season1)
@@ -272,5 +270,6 @@ class TestModelRelationships(TestCase):
 
         league.delete()
 
-        self.assertEqual(Team.objects.filter(season__league_id=league_id).count(), 0)
-
+        self.assertEqual(Team.objects.filter(
+            season__league_id=league_id
+        ).count(), 0)
