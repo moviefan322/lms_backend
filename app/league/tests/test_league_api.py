@@ -25,8 +25,6 @@ def create_league(admin_user, **params):
     """Helper function to create a league with the provided admin user."""
     defaults = {
         'name': random_string(),
-        'season': 'Winter',
-        'year': 2021,
         'is_active': True,
     }
     defaults.update(params)
@@ -59,8 +57,6 @@ class PublicLeagueApiTests(TestCase):
         """Test creating a league without authentication should fail."""
         payload = {
             'name': 'Test League',
-            'season': 'Winter',
-            'year': 2021,
             'is_active': True,
         }
 
@@ -90,8 +86,6 @@ class AdminLeagueApiTests(TestCase):
         """Test that an admin user can create a league."""
         payload = {
             'name': 'Test League',
-            'season': 'Winter',
-            'year': 2021,
             'is_active': True,
         }
         res = self.client.post(LEAGUES_URL, payload)
@@ -122,8 +116,6 @@ class AdminLeagueApiTests(TestCase):
         league = create_league(admin_user=self.admin_user)
         payload = {
             'name': 'Updated League',
-            'season': 'Fall',
-            'year': 2020,
             'is_active': False,
         }
         url = detail_url(league.id)
@@ -213,8 +205,6 @@ class AdditionalAdminLeagueApiTests(TestCase):
 
         payload = {
             'name': 'Updated by Additional Admin',
-            'season': 'Fall',
-            'year': 2023,
             'is_active': False,
         }
 
@@ -227,8 +217,6 @@ class AdditionalAdminLeagueApiTests(TestCase):
         serializer = LeagueSerializer(league)
         self.assertEqual(res.data, serializer.data)
         self.assertEqual(league.name, payload['name'])
-        self.assertEqual(league.season, payload['season'])
-        self.assertEqual(league.year, payload['year'])
         self.assertFalse(league.is_active)
 
     def test_additional_admin_can_delete_league(self):
@@ -254,7 +242,6 @@ class AdditionalAdminLeagueApiTests(TestCase):
 
         payload = {
             'name': 'Unauthorized Update',
-            'season': 'Spring',
             'year': 2024,
         }
 
@@ -287,7 +274,6 @@ class AdditionalAdminLeagueApiTests(TestCase):
 
         payload = {
             'name': 'Main Admin Update',
-            'season': 'Spring',
             'year': 2023,
         }
 
@@ -298,8 +284,6 @@ class AdditionalAdminLeagueApiTests(TestCase):
 
         league.refresh_from_db()
         self.assertEqual(league.name, payload['name'])
-        self.assertEqual(league.season, payload['season'])
-        self.assertEqual(league.year, payload['year'])
 
     def test_main_admin_can_delete_league(self):
         """Test that the main admin can delete the league."""

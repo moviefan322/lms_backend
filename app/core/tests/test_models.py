@@ -4,7 +4,7 @@ Tests for models
 from django.test import TestCase
 from django.db.utils import IntegrityError
 from django.contrib.auth import get_user_model
-from core.models import Player, Team, League
+from core.models import Player, Team, League, Season, TeamSeason
 
 import random
 import string
@@ -32,12 +32,22 @@ def create_user():
     )
 
 
+def create_season(league, **params):
+    """Create and return a sample season"""
+    defaults = {
+        'name': random_string(),
+        'year': 2021,
+        'league': league,
+    }
+    defaults.update(params)
+
+    return Season.objects.create(**defaults)
+
+
 def create_league():
     """Create a league."""
     league = League.objects.create(
         name=random_string(),
-        season='Winter',
-        year=2021,
         is_active=True,
         admin=create_admin()
     )
@@ -49,21 +59,21 @@ def create_player():
     """Create a player."""
     player = Player.objects.create(
         name=random_string(),
-        handicap=8,
     )
 
     return player
 
 
-def create_team():
-    """Create a team."""
-    team = Team.objects.create(
-        name=random_string(),
-        captain=create_player(),
-        league=create_league()
-    )
+def create_team(season, **params):
+    """Create and return a sample team"""
+    defaults = {
+        'name': random_string(),
+        'captain': create_player(),
+        'season': season,
+    }
+    defaults.update(params)
 
-    return team
+    return Team.objects.create(**defaults)
 
 
 class TestUserModel(TestCase):
@@ -140,21 +150,15 @@ class TestLeagueModel(TestCase):
     def test_create_league(self):
         """Test creating a league."""
         name = 'Test League'
-        season = 'Winter'
-        year = 2021
         admin = create_admin()
 
         league = League.objects.create(
             name=name,
-            season=season,
-            year=year,
             is_active=True,
             admin=admin
         )
 
         self.assertEqual(league.name, name)
-        self.assertEqual(league.season, season)
-        self.assertEqual(league.year, year)
         self.assertTrue(league.is_active)
 
     def test_add_admin_to_league(self):
@@ -167,14 +171,22 @@ class TestLeagueModel(TestCase):
         self.assertIn(additional_admin, league.additional_admins.all())
 
     def test_prevent_duplicate_player_in_team(self):
-        """Test that a player cannot be added to a team multiple times."""
+        """Test that a player cannot be added to a team multiple times in the same season."""
         player = create_player()
-        team = create_team()
+        season = create_season(league=create_league())
+        team = create_team(season=season)
 
-        player.teams.add(team)
-        player.teams.add(team)
+        # Create the TeamSeason instance
+        team_season = TeamSeason.objects.create(team=team, season=season)
 
-        self.assertEqual(player.teams.filter(id=team.id).count(), 1)
+        # Add the player to the team season once
+        player.teams.add(team_season)
+
+        # Try to add the same player to the same team season again
+        player.teams.add(team_season)
+
+        # Assert that the player is only added once to the team season
+        self.assertEqual(player.teams.filter(id=team_season.id).count(), 1)
 
 
 class TestPlayerModel(TestCase):
@@ -183,15 +195,12 @@ class TestPlayerModel(TestCase):
     def test_create_player(self):
         """Test creating a player."""
         name = 'Test Player'
-        rank = 8
 
         player = Player.objects.create(
             name=name,
-            handicap=rank,
         )
 
         self.assertEqual(player.name, name)
-        self.assertEqual(player.handicap, rank)
 
 
 class TestTeamModel(TestCase):
@@ -202,22 +211,23 @@ class TestTeamModel(TestCase):
         name = 'Test Team'
         captain = create_player()
         league = create_league()
+        season = create_season(league)
 
         team = Team.objects.create(
             name=name,
             captain=captain,
-            league=league
+            season=season
         )
 
         self.assertEqual(team.name, name)
         self.assertEqual(team.captain, captain)
-        self.assertEqual(team.league, league)
 
     def test_create_team_without_captain_fails(self):
         """Test that creating a team without a captain raises an error."""
         league = create_league()
+        season = create_season(league)
         with self.assertRaises(IntegrityError):
-            Team.objects.create(name='Team Without Captain', league=league)
+            Team.objects.create(name='Team Without Captain', season=season)
 
 
 class TestModelRelationships(TestCase):
@@ -226,32 +236,41 @@ class TestModelRelationships(TestCase):
     def test_player_added_to_multiple_teams(self):
         """Test a player can belong to multiple teams."""
         player = create_player()
-        team1 = create_team()
-        team2 = create_team()
+        season1 = create_season(league=create_league())  # Create seasons for the teams
+        season2 = create_season(league=create_league())
 
-        player.teams.add(team1, team2)
+        team1 = create_team(season=season1)
+        team2 = create_team(season=season2)
 
-        self.assertIn(team1, player.teams.all())
-        self.assertIn(team2, player.teams.all())
-        self.assertIn(player, team1.players.all())
-        self.assertIn(player, team2.players.all())
+        team_season1 = TeamSeason.objects.create(team=team1, season=season1)
+        team_season2 = TeamSeason.objects.create(team=team2, season=season2)
+
+        player.teams.add(team_season1, team_season2)
+
+        self.assertIn(team_season1, player.teams.all())
+        self.assertIn(team_season2, player.teams.all())
+        self.assertIn(player, team_season1.players.all())
+        self.assertIn(player, team_season2.players.all())
 
     def test_delete_league_deletes_teams(self):
         """Test that deleting a league also deletes associated teams."""
         league = create_league()
+        season = create_season(league=league)
+
         Team.objects.create(
             name='Test Team',
             captain=create_player(),
-            league=league
+            season=season
         )
         Team.objects.create(
             name='Test Team2',
             captain=create_player(),
-            league=league
+            season=season
         )
 
         league_id = league.id
 
         league.delete()
 
-        self.assertEqual(Team.objects.filter(league_id=league_id).count(), 0)
+        self.assertEqual(Team.objects.filter(season__league_id=league_id).count(), 0)
+

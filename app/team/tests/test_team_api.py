@@ -9,7 +9,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import Team, League, Player
+from core.models import Team, League, Player, Season
 from team.serializers import TeamSerializer
 from core.tests.test_models import random_string, create_admin
 
@@ -25,8 +25,6 @@ def create_league(admin_user, **params):
     """Create and return a sample league"""
     defaults = {
         'name': random_string(),
-        'season': 'Winter',
-        'year': 2021,
         'is_active': True,
     }
     defaults.update(params)
@@ -43,16 +41,27 @@ def create_player(**params):
 
     return Player.objects.create(**defaults)
 
+def create_season(league, **params):
+    """Create and return a sample season"""
+    defaults = {
+        'name': random_string(),
+        'year': 2021,
+        'league': league,
+    }
+    defaults.update(params)
 
-def create_team(league, **params):
+    return Season.objects.create(**defaults)
+
+def create_team(season, **params):
     """Create and return a sample team"""
     defaults = {
         'name': random_string(),
         'captain': create_player(),
+        'season': season,
     }
     defaults.update(params)
 
-    return Team.objects.create(league=league, **defaults)
+    return Team.objects.create(**defaults)
 
 
 class PublicTeamApiTests(TestCase):
@@ -70,7 +79,8 @@ class PublicTeamApiTests(TestCase):
     def test_get_team_detail_unauthorized(self):
         """Test that authentication is required to get team detail"""
         league = create_league(create_admin())
-        team = create_team(league)
+        season = create_season(league)
+        team = create_team(season)
         url = detail_url(team.id)
         res = self.client.get(url)
 
@@ -125,8 +135,9 @@ class AdminTeamApiTests(TestCase):
     def test_retrieve_teams(self):
         """Test retrieving a list of teams"""
         league = create_league(self.admin_user)
-        create_team(league)
-        create_team(league)
+        season = create_season(league)
+        create_team(season)
+        create_team(season)
 
         res = self.client.get(TEAMS_URL)
 
@@ -153,7 +164,8 @@ class AdminTeamApiTests(TestCase):
     def test_get_team_detail(self):
         """Test retrieving a team detail as an authenticated user."""
         league = create_league(self.admin_user)
-        team = create_team(league)
+        season = create_season(league)
+        team = create_team(season)
         url = detail_url(team.id)
         res = self.client.get(url)
 
@@ -166,7 +178,8 @@ class AdminTeamApiTests(TestCase):
     def test_update_team(self):
         """Test updating a team as admin."""
         league = create_league(self.admin_user)
-        team = create_team(league)
+        season = create_season(league)
+        team = create_team(season)
         payload = {
             'name': random_string(),
             'league': league.id,
@@ -187,7 +200,8 @@ class AdminTeamApiTests(TestCase):
     def test_partial_update_team(self):
         """Test updating a team with patch."""
         league = create_league(self.admin_user)
-        team = create_team(league)
+        season = create_season(league)
+        team = create_team(season)
         payload = {
             'name': random_string(),
         }
@@ -204,7 +218,8 @@ class AdminTeamApiTests(TestCase):
     def test_delete_team(self):
         """Test deleting a team."""
         league = create_league(self.admin_user)
-        team = create_team(league)
+        season = create_season(league)
+        team = create_team(season)
         url = detail_url(team.id)
         res = self.client.delete(url)
 
@@ -226,7 +241,8 @@ class AdminTeamApiTests(TestCase):
     def test_admin_cannot_update_team_for_other_league(self):
         """Test that admin cannot update a team for another league"""
         league = create_league(self.other_admin_user)
-        team = create_team(league)
+        season = create_season(league)
+        team = create_team(season)
         payload = {
             'name': random_string(),
             'league': league.id,
@@ -240,7 +256,8 @@ class AdminTeamApiTests(TestCase):
     def test_admin_cannot_delete_team_for_other_league(self):
         """Test that admin cannot delete a team for another league"""
         league = create_league(self.other_admin_user)
-        team = create_team(league)
+        season = create_season(league)
+        team = create_team(season)
         url = detail_url(team.id)
         res = self.client.delete(url)
 
@@ -273,7 +290,8 @@ class AdditionAdminLeagueApiTests(TestCase):
         self.other_user.save()
 
         self.league = create_league(self.admin_user)
-        self.team = create_team(self.league)
+        self.season = create_season(self.league)
+        self.team = create_team(self.season)
         self.team.players.add(self.other_user.player_profile)
 
         self.client.force_authenticate(self.admin_user)
@@ -302,7 +320,8 @@ class AdditionAdminLeagueApiTests(TestCase):
     def test_additional_admin_can_update_team(self):
         """Test that additional admin can update a team"""
         league = create_league(self.admin_user)
-        team = create_team(league)
+        season = create_season(league)
+        team = create_team(season)
         league.additional_admins.add(self.additional_admin_user)
 
         self.client.force_authenticate(self.additional_admin_user)
@@ -327,7 +346,8 @@ class AdditionAdminLeagueApiTests(TestCase):
     def test_additional_admin_can_delete_team(self):
         """Test that additional admin can delete a team"""
         league = create_league(self.admin_user)
-        team = create_team(league)
+        season = create_season(league)
+        team = create_team(season)
         league.additional_admins.add(self.additional_admin_user)
 
         self.client.force_authenticate(self.additional_admin_user)
@@ -373,7 +393,8 @@ class AdditionAdminLeagueApiTests(TestCase):
     def test_user_cannot_delete_team(self):
         """Test that a user cannot delete a team"""
         league = create_league(self.admin_user)
-        create_team(league)
+        season = create_season(league)
+        team = create_team(season)
 
         self.client.force_authenticate(self.other_user)
 
@@ -386,9 +407,9 @@ class AdditionAdminLeagueApiTests(TestCase):
         """Test that a user can retrieve a list of teams in their league."""
         self.other_user.player_profile.teams.clear()
         league = create_league(self.admin_user)
-
-        team1 = create_team(league=league)
-        create_team(league=league)
+        season = create_season(league)
+        team1 = create_team(season)
+        create_team(season)
 
         team1.players.add(self.other_user.player_profile)
 
@@ -408,7 +429,8 @@ class AdditionAdminLeagueApiTests(TestCase):
         self.other_user.player_profile.teams.clear()
 
         league = create_league(self.admin_user)
-        team = create_team(league, captain=self.other_user.player_profile)
+        season = create_season(league)
+        team = create_team(season, captain=self.other_user.player_profile)
         team.players.add(self.other_user.player_profile)
 
         self.client.force_authenticate(self.other_user)
