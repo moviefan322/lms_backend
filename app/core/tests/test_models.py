@@ -295,7 +295,8 @@ class TestSeasonModel(TestCase):
         self.assertEqual(season.league, league)
 
     def test_unique_together_constraint_on_season(self):
-        """Test that the same season name cannot exist for the same league and year."""
+        """Test that the same season name
+        cannot exist for the same league and year."""
         league = create_league()
         create_season(league=league, name='Winter Season', year=2024)
 
@@ -367,7 +368,8 @@ class TestTeamPlayerModel(TestCase):
         self.assertEqual(team_player.losses, 3)
 
     def test_prevent_duplicate_team_player_in_same_team_season(self):
-        """Test that a player cannot be added multiple times to the same team season."""
+        """Test that a player cannot be added
+        multiple times to the same team season."""
         player = create_player()
         league = create_league()
         season = create_season(league=league)
