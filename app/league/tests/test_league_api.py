@@ -387,7 +387,8 @@ class UserLeagueApiTests(TestCase):
         self.league = create_league(admin_user=self.admin_user)
         self.season = create_season(league=self.league)
         self.team = create_team(season=self.season)
-        self.team_season = create_team_season(team=self.team, season=self.season)
+        self.team_season = create_team_season(
+            team=self.team, season=self.season)
         create_team_player(team_season=self.team_season, player=self.player)
 
     def test_league_player_can_read_league_detail(self):

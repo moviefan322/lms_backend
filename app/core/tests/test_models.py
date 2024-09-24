@@ -325,7 +325,12 @@ class TestTeamSeasonModel(TestCase):
         team = create_team(season=season)
 
         team_season = TeamSeason.objects.create(
-            team=team, season=season, wins=10, losses=5, captain=create_player())
+            team=team,
+            season=season,
+            wins=10,
+            losses=5,
+            captain=create_player()
+        )
 
         self.assertEqual(team_season.wins, 10)
         self.assertEqual(team_season.losses, 5)
