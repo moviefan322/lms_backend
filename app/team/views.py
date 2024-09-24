@@ -22,7 +22,8 @@ class TeamViewSet(viewsets.ModelViewSet):
             return Team.objects.none()
 
         player_leagues = League.objects.filter(
-            teams__players=user.player_profile).distinct()
+            teams__teamseason__players=user.player_profile
+        ).distinct()
 
         return Team.objects.filter(
             league__in=player_leagues

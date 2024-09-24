@@ -109,8 +109,8 @@ class Season(models.Model):
 class Team(models.Model):
     """Team object."""
     name = models.CharField(max_length=255)
-    season = models.ForeignKey(
-        'Season',
+    league = models.ForeignKey(
+        'League',
         on_delete=models.CASCADE,
         related_name='teams'
     )
