@@ -9,7 +9,14 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import Team, League, Player, Season
+from core.models import (
+    Team,
+    League,
+    Player,
+    Season,
+    TeamPlayer,
+    TeamSeason,
+)
 from team.serializers import TeamSerializer
 from core.tests.test_models import random_string, create_admin
 
@@ -64,6 +71,18 @@ def create_team(season, **params):
     defaults.update(params)
 
     return Team.objects.create(**defaults)
+
+
+def create_team_player(team_season, player, **params):
+    """Create and return a sample TeamPlayer"""
+    defaults = {
+        'team_season': team_season,
+        'player': player,
+        'handicap': 3,  # or whatever default values you want
+    }
+    defaults.update(params)
+
+    return TeamPlayer.objects.create(**defaults)
 
 
 class PublicTeamApiTests(TestCase):
@@ -149,6 +168,21 @@ class AdminTeamApiTests(TestCase):
         self.assertEqual(res.data, serializer.data)
         self.assertEqual(len(res.data), 2)
 
+    def test_team_has_players(self):
+        """Test retrieving a team that has players."""
+        team = create_team(self.season)
+        player = create_player()
+        team_season = TeamSeason.objects.get(team=team, season=self.season)
+
+        # Explicitly create TeamPlayer instance
+        create_team_player(team_season, player)
+
+        url = detail_url(team.id)
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn(player.name, [p['name'] for p in res.data['players']])
+
     def test_create_team_invalid(self):
         """Test creating a team with invalid payload fails."""
         league = create_league(self.admin_user)
@@ -176,6 +210,7 @@ class AdminTeamApiTests(TestCase):
         self.assertEqual(res.data, serializer.data)
         self.assertEqual(res.data['name'], team.name)
         self.assertEqual(res.data['league'], team.league.id)
+        self.assertEqual(res.data['captain'], team.captain.id)
 
     def test_update_team(self):
         """Test updating a team as admin."""

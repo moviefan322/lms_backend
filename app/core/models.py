@@ -54,7 +54,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         'Player',
         on_delete=models.CASCADE,
         null=True,
-        blank=True
+        blank=True,
+        related_name='user'
     )
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -157,7 +158,11 @@ class Player(models.Model):
 
 class TeamPlayer(models.Model):
     """TeamPlayer object."""
-    team_season = models.ForeignKey('TeamSeason', on_delete=models.CASCADE)
+    team_season = models.ForeignKey(
+        'TeamSeason',
+        on_delete=models.CASCADE,
+        related_name='team_players'
+    )
     player = models.ForeignKey('Player', on_delete=models.CASCADE)
     handicap = models.IntegerField(default=3)
     wins = models.IntegerField(default=0)
