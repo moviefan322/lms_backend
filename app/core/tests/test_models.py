@@ -4,7 +4,14 @@ Tests for models
 from django.test import TestCase
 from django.db.utils import IntegrityError
 from django.contrib.auth import get_user_model
-from core.models import Player, Team, League, Season, TeamSeason
+from core.models import (
+    Player,
+    Team,
+    League,
+    Season,
+    TeamSeason,
+    TeamPlayer
+)
 
 import random
 import string
@@ -273,3 +280,102 @@ class TestModelRelationships(TestCase):
         self.assertEqual(Team.objects.filter(
             season__league_id=league_id
         ).count(), 0)
+
+
+class TestSeasonModel(TestCase):
+    """Test Season model and related functionality"""
+
+    def test_create_season(self):
+        """Test creating a season."""
+        league = create_league()
+        season = create_season(league=league, name='Spring Season', year=2024)
+
+        self.assertEqual(season.name, 'Spring Season')
+        self.assertEqual(season.year, 2024)
+        self.assertEqual(season.league, league)
+
+    def test_unique_together_constraint_on_season(self):
+        """Test that the same season name cannot exist for the same league and year."""
+        league = create_league()
+        create_season(league=league, name='Winter Season', year=2024)
+
+        with self.assertRaises(IntegrityError):
+            create_season(league=league, name='Winter Season', year=2024)
+
+
+class TestTeamSeasonModel(TestCase):
+    """Test TeamSeason model and related functionality"""
+
+    def test_create_team_season(self):
+        """Test creating a team season entry."""
+        league = create_league()
+        season = create_season(league=league)
+        team = create_team(season=season)
+
+        team_season = TeamSeason.objects.create(team=team, season=season)
+
+        self.assertEqual(team_season.team, team)
+        self.assertEqual(team_season.season, season)
+        self.assertEqual(team_season.wins, 0)
+        self.assertEqual(team_season.losses, 0)
+
+    def test_team_season_wins_losses(self):
+        """Test updating team season stats."""
+        league = create_league()
+        season = create_season(league=league)
+        team = create_team(season=season)
+
+        team_season = TeamSeason.objects.create(
+            team=team, season=season, wins=10, losses=5)
+
+        self.assertEqual(team_season.wins, 10)
+        self.assertEqual(team_season.losses, 5)
+
+        # Update stats
+        team_season.wins += 1
+        team_season.losses += 1
+        team_season.save()
+
+        self.assertEqual(team_season.wins, 11)
+        self.assertEqual(team_season.losses, 6)
+
+
+class TestTeamPlayerModel(TestCase):
+    """Test TeamPlayer model and related functionality"""
+
+    def test_create_team_player(self):
+        """Test creating a TeamPlayer entry."""
+        player = create_player()
+        league = create_league()
+        season = create_season(league=league)
+        team = create_team(season=season)
+
+        team_season = TeamSeason.objects.create(team=team, season=season)
+
+        team_player = TeamPlayer.objects.create(
+            player=player,
+            team_season=team_season,
+            handicap=5,
+            wins=7,
+            losses=3
+        )
+
+        self.assertEqual(team_player.player, player)
+        self.assertEqual(team_player.team_season, team_season)
+        self.assertEqual(team_player.handicap, 5)
+        self.assertEqual(team_player.wins, 7)
+        self.assertEqual(team_player.losses, 3)
+
+    def test_prevent_duplicate_team_player_in_same_team_season(self):
+        """Test that a player cannot be added multiple times to the same team season."""
+        player = create_player()
+        league = create_league()
+        season = create_season(league=league)
+        team = create_team(season=season)
+
+        team_season = TeamSeason.objects.create(team=team, season=season)
+
+        TeamPlayer.objects.create(player=player, team_season=team_season)
+
+        with self.assertRaises(IntegrityError):
+            TeamPlayer.objects.create(player=player, team_season=team_season)

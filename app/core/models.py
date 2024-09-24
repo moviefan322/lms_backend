@@ -2,6 +2,7 @@
 Database models
 """
 from django.db import models
+from django.db.models import Q, F
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth.models import (
@@ -160,6 +161,9 @@ class TeamPlayer(models.Model):
     wins = models.IntegerField(default=0)
     losses = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('team_season', 'player')
 
     def __str__(self):
         return f'{self.team_season} - {self.player}'
