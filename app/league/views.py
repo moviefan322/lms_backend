@@ -2,15 +2,46 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from django.db import models
 
-from core.models import League
+from core.models import League, Season
 from league import serializers
-from .permissions import IsAdminOrReadOnly
+from .permissions import IsAdminOrLeagueMember
+
+
+class SeasonViewSet(viewsets.ModelViewSet):
+    """View for managing season APIs."""
+    serializer_class = serializers.SeasonSerializer
+    permission_classes = [IsAuthenticated, IsAdminOrLeagueMember]
+
+    def get_queryset(self):
+        """Return seasons for the league that the
+        current authenticated user is associated with."""
+        user = self.request.user
+        league_id = self.kwargs.get('league_id')
+
+        seasons = Season.objects.filter(
+            models.Q(league__admin=user) |
+            models.Q(league__additional_admins=user),
+            league_id=league_id
+        )
+
+        seasons_as_player = Season.objects.filter(
+            league__seasons__teamseason__players__user=user,
+            league_id=league_id
+        )
+
+        return (seasons | seasons_as_player).distinct()
+
+    def perform_create(self, serializer):
+        """Create a new season."""
+        league_id = self.kwargs['league_id']
+        league = League.objects.get(id=league_id)
+        serializer.save(league=league)
 
 
 class LeagueViewSet(viewsets.ModelViewSet):
     """View for managing league APIs"""
     serializer_class = serializers.LeagueSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+    permission_classes = [IsAuthenticated, IsAdminOrLeagueMember]
 
     def get_queryset(self):
         """Return leagues the current authenticated user is associated with."""

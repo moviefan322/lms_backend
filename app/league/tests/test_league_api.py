@@ -27,6 +27,16 @@ def detail_url(league_id):
     return reverse('league:league-detail', args=[league_id])
 
 
+def seasons_url(league_id):
+    """Return the season list URL for a given league."""
+    return reverse('league:season-list', args=[league_id])
+
+
+def season_detail_url(league_id, season_id):
+    """Return season detail URL for a given league and season."""
+    return reverse('league:season-detail', args=[league_id, season_id])
+
+
 def create_league(admin_user, **params):
     """Helper function to create a league with the provided admin user."""
     defaults = {
@@ -410,7 +420,7 @@ class UserLeagueApiTests(TestCase):
         url = detail_url(self.league.id)
         res = self.client.get(url)
 
-        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_user_cannot_modify_league(self):
         """Test that a regular user cannot modify the league."""
@@ -448,4 +458,164 @@ class UserLeagueApiTests(TestCase):
         url = detail_url(self.league.id)
         res = self.client.get(url)
 
-        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class AdminSeasonApiTests(TestCase):
+    """Test the CRUD operations on seasons for admin users."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin_user = get_user_model().objects.create_user(
+            'admin@example.com',
+            'test123',
+            is_admin=True,
+        )
+        self.additional_admin = get_user_model().objects.create_user(
+            'additionaladmin@example.com',
+            'test123',
+            is_admin=True,
+        )
+        self.client.force_authenticate(self.admin_user)
+
+        self.league = create_league(admin_user=self.admin_user)
+
+    def test_create_season(self):
+        """Test that an admin user can create a season."""
+        payload = {
+            'name': 'Spring Season',
+            'year': 2024,
+            'league': self.league.id
+        }
+        url = seasons_url(self.league.id)
+        res = self.client.post(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(Season.objects.filter(
+            name=payload['name'], league=self.league).exists())
+
+    def test_update_season(self):
+        """Test that an admin user can update a season."""
+        season = create_season(league=self.league)
+        payload = {'name': 'Updated Season'}
+        url = season_detail_url(self.league.id, season.id)
+
+        res = self.client.patch(url, payload)
+        season.refresh_from_db()
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(season.name, payload['name'])
+
+    def test_delete_season(self):
+        """Test that an admin user can delete a season."""
+        season = create_season(league=self.league)
+        url = season_detail_url(self.league.id, season.id)
+
+        res = self.client.delete(url)
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Season.objects.filter(id=season.id).exists())
+
+    def test_additional_admin_can_create_season(self):
+        """Test that additional admins can create a league."""
+        self.league.additional_admins.add(self.additional_admin)
+        self.client.force_authenticate(self.additional_admin)
+
+        payload = {
+            'name': 'New Season',
+            'year': 2025,
+        }
+        url = seasons_url(self.league.id)
+        res = self.client.post(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(Season.objects.filter(
+            name=payload['name'], league=self.league).exists())
+
+    def test_additional_admin_can_update_season(self):
+        """Test that additional admins can update a league."""
+        season = create_season(league=self.league)
+        self.league.additional_admins.add(self.additional_admin)
+        self.client.force_authenticate(self.additional_admin)
+
+        payload = {'name': 'Updated Season'}
+        url = reverse('league:season-detail', args=[self.league.id, season.id])
+        res = self.client.patch(url, payload)
+
+        season.refresh_from_db()
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(season.name, payload['name'])
+
+    def test_additional_admin_can_delete_season(self):
+        """Test that additional admins can delete a league."""
+        season = create_season(league=self.league)
+        self.league.additional_admins.add(self.additional_admin)
+        self.client.force_authenticate(self.additional_admin)
+
+        url = season_detail_url(self.league.id, season.id)
+        res = self.client.delete(url)
+
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Season.objects.filter(id=season.id).exists())
+
+
+class UserSeasonApiTests(TestCase):
+    """Test league API access for seasons for regular league members."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin_user = get_user_model().objects.create_user(
+            'admin@example.com',
+            'test123',
+            is_admin=True,
+        )
+        self.player = create_player()
+        self.user = get_user_model().objects.create_user(
+            email='user@example.com',
+            password='test123',
+            player_profile=self.player,
+            is_admin=False,
+        )
+        self.other_user = get_user_model().objects.create_user(
+            'otheruser@example.com',
+            'test123',
+            is_admin=False,
+        )
+
+        self.league = create_league(admin_user=self.admin_user)
+        self.season = create_season(league=self.league)
+        self.team = create_team(season=self.season)
+        self.team_season = create_team_season(
+            team=self.team, season=self.season)
+        create_team_player(team_season=self.team_season, player=self.player)
+
+    def test_league_user_can_read_seasons(self):
+        """Test that a league member can list and view seasons."""
+        self.client.force_authenticate(self.user)
+
+        url = seasons_url(self.league.id)
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn(self.season.name, str(res.data))
+
+    def test_non_league_user_cannot_access_seasons(self):
+        """Test that a user who is not part of
+        the league cannot view the seasons."""
+        self.client.force_authenticate(self.other_user)
+
+        url = seasons_url(self.league.id)
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_user_cannot_modify_seasons(self):
+        """Test that a regular user cannot modify seasons."""
+        self.client.force_authenticate(self.user)
+        payload = {'name': 'Unauthorized Season'}
+        url = season_detail_url(self.league.id, self.season.id)
+
+        res = self.client.patch(url, payload)
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+        self.season.refresh_from_db()
+        self.assertNotEqual(self.season.name, payload['name'])

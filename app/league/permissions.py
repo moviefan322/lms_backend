@@ -1,33 +1,70 @@
 from rest_framework import permissions
-from core.models import League  # Import the League model to query it
+from core.models import League, Season
 
 
-class IsAdminOrReadOnly(permissions.BasePermission):
-    """Custom permission to allow read-only access for authenticated users,
-    and full access to league admins and additional admins."""
+class IsAdminOrLeagueMember(permissions.BasePermission):
+    """Custom permission to allow full access to
+    league admins and additional admins,
+    and read-only access to members of the league (players)."""
 
     def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return request.user.is_authenticated
+        """Check permission at the view level."""
 
         if request.method == 'POST':
             return request.user.is_authenticated and request.user.is_admin
 
-        league = None
-        if 'pk' in view.kwargs:
-            league = League.objects.get(pk=view.kwargs['pk'])
+        league = self.get_league_from_request(view)
 
-        return request.user.is_authenticated and (
+        if not league:
+            return False
+
+        if request.method in permissions.SAFE_METHODS:
+            result = self.is_user_in_league(request.user, league)
+            return result
+
+        is_admin_or_additional = (
             request.user == league.admin or
             request.user in league.additional_admins.all()
         )
 
-    def has_object_permission(self, request, view, obj):
-        """Object-level permission for RO access and admin modifications"""
-        if request.method in permissions.SAFE_METHODS:
-            return request.user.is_authenticated
+        return is_admin_or_additional
 
-        return request.user == obj.admin or (
-            request.user in
-            obj.additional_admins.all()
+    def has_object_permission(self, request, view, obj):
+        """Check object-level permissions for
+        each specific object (League or Season)."""
+        league = None
+
+        if isinstance(obj, League):
+            league = obj
+        elif isinstance(obj, Season):
+            league = obj.league
+
+        if request.method in permissions.SAFE_METHODS:
+            result = self.is_user_in_league(request.user, league)
+            return result
+
+        is_admin_or_additional = (
+            request.user == league.admin or
+            request.user in league.additional_admins.all()
         )
+        return is_admin_or_additional
+
+    def is_user_in_league(self, user, league):
+        """Check if a user is part of a league
+        either as admin, additional admin, or player."""
+        if user == league.admin or user in league.additional_admins.all():
+            return True
+
+        is_player_in_league = Season.objects.filter(
+            league=league,
+            teamseason__players=user.player_profile
+        ).exists()
+        return is_player_in_league
+
+    def get_league_from_request(self, view):
+        """Helper function to retrieve league from request or view kwargs."""
+        if 'league_id' in view.kwargs:
+            return League.objects.filter(pk=view.kwargs['league_id']).first()
+        elif 'pk' in view.kwargs:
+            return League.objects.filter(pk=view.kwargs['pk']).first()
+        return None
