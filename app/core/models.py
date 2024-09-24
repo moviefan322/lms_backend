@@ -113,12 +113,6 @@ class Team(models.Model):
         on_delete=models.CASCADE,
         related_name='teams'
     )
-    captain = models.ForeignKey(
-        'Player',
-        on_delete=models.CASCADE,
-        related_name='teams_captained',
-        null=False
-    )
 
     def __str__(self):
         return self.name
@@ -128,6 +122,12 @@ class TeamSeason(models.Model):
     """Intermediary model for tracking team stats in a specific season."""
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
+    captain = models.ForeignKey(
+        'Player',
+        on_delete=models.CASCADE,
+        related_name='teams_captained',
+        null=False
+    )
     wins = models.IntegerField(default=0)
     losses = models.IntegerField(default=0)
     games_won = models.IntegerField(default=0)

@@ -9,7 +9,13 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import League
+from core.models import (
+    League,
+    Season,
+    Team,
+    Player,
+    TeamSeason,
+    TeamPlayer)
 from league.serializers import LeagueSerializer
 from core.tests.test_models import random_string, create_admin
 
@@ -30,6 +36,62 @@ def create_league(admin_user, **params):
     defaults.update(params)
 
     return League.objects.create(admin=admin_user, **defaults)
+
+
+def create_season(league, **params):
+    """Helper function to create a season."""
+    defaults = {
+        'name': random_string(),
+        'league': league,
+        'year': 2021,
+    }
+    defaults.update(params)
+
+    return Season.objects.create(**defaults)
+
+
+def create_team(season, **params):
+    """Helper function to create a team."""
+    defaults = {
+        'name': random_string(),
+        'season': season,
+    }
+    defaults.update(params)
+
+    return Team.objects.create(**defaults)
+
+
+def create_team_season(team, season, **params):
+    """Helper function to create a team season."""
+    defaults = {
+        'team': team,
+        'season': season,
+        'captain': create_player(),
+    }
+    defaults.update(params)
+
+    return TeamSeason.objects.create(**defaults)
+
+
+def create_player(**params):
+    """Helper function to create a player."""
+    defaults = {
+        'name': random_string(),
+    }
+    defaults.update(params)
+
+    return Player.objects.create(**defaults)
+
+
+def create_team_player(team_season, player, **params):
+    """Helper function to create a team player."""
+    defaults = {
+        'team_season': team_season,
+        'player': player,
+    }
+    defaults.update(params)
+
+    return TeamPlayer.objects.create(**defaults)
 
 
 class PublicLeagueApiTests(TestCase):
@@ -298,77 +360,91 @@ class AdditionalAdminLeagueApiTests(TestCase):
         self.assertFalse(League.objects.filter(id=league.id).exists())
 
 
-# class UserLeagueApiTests(TestCase):
-#     """Test league API access for league members."""
+class UserLeagueApiTests(TestCase):
+    """Test league API access for league members."""
 
-#     def setUp(self):
-#         self.client = APIClient()
+    def setUp(self):
+        self.client = APIClient()
 
-#         self.admin_user = get_user_model().objects.create_user(
-#             'admin@example.com',
-#             'test123',
-#             is_admin=True,
-#         )
-#         self.user = get_user_model().objects.create_user(
-#             'user@example.com',
-#             'test123',
-#             is_admin=False,
-#         )
-#         self.other_user = get_user_model().objects.create_user(
-#             'otheruser@example.com',
-#             'test123',
-#             is_admin=False,
-#         )
+        self.admin_user = get_user_model().objects.create_user(
+            'admin@example.com',
+            'test123',
+            is_admin=True,
+        )
+        self.player = create_player()
+        self.user = get_user_model().objects.create_user(
+            email='user@example.com',
+            password='test123',
+            player_profile=self.player,
+            is_admin=False,
+        )
+        self.other_user = get_user_model().objects.create_user(
+            'otheruser@example.com',
+            'test123',
+            is_admin=False,
+        )
 
-#         self.league = create_league(admin_user=self.admin_user)
-#         self.league.players.add(self.user)
+        self.league = create_league(admin_user=self.admin_user)
+        self.season = create_season(league=self.league)
+        self.team = create_team(season=self.season)
+        self.team_season = create_team_season(team=self.team, season=self.season)
+        create_team_player(team_season=self.team_season, player=self.player)
 
-#     def test_user_can_read_league_detail(self):
-#         """Test that league user can read the league's details."""
-#         self.client.force_authenticate(self.user)
+    def test_league_player_can_read_league_detail(self):
+        """Test that league user can read the league's details."""
+        self.client.force_authenticate(self.user)
 
-#         url = detail_url(self.league.id)
-#         res = self.client.get(url)
+        url = detail_url(self.league.id)
+        res = self.client.get(url)
 
-#         self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
 
-#         serializer = LeagueSerializer(self.league)
-#         self.assertEqual(res.data, serializer.data)
+        serializer = LeagueSerializer(self.league)
+        self.assertEqual(res.data, serializer.data)
 
-#     def test_user_cannot_modify_league(self):
-#         """Test that a regular user cannot modify the league."""
-#         self.client.force_authenticate(self.user)
+    def test_non_player_cannot_read_league_detail(self):
+        """Test that a non-league user cannot read the league's details."""
+        self.client.force_authenticate(self.other_user)
 
-#         payload = {
-#             'name': 'Unauthorized Update',
-#             'season': 'Spring',
-#             'year': 2023,
-#         }
+        url = detail_url(self.league.id)
+        res = self.client.get(url)
 
-#         url = detail_url(self.league.id)
-#         res = self.client.patch(url, payload)
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
 
-#         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+    def test_user_cannot_modify_league(self):
+        """Test that a regular user cannot modify the league."""
+        self.client.force_authenticate(self.user)
 
-#         self.league.refresh_from_db()
-#         self.assertNotEqual(self.league.name, payload['name'])
+        payload = {
+            'name': 'Unauthorized Update',
+            'season': 'Spring',
+            'year': 2023,
+        }
 
-#     def test_user_cannot_delete_league(self):
-#         """Test that a regular user cannot delete the league."""
-#         self.client.force_authenticate(self.user)
+        url = detail_url(self.league.id)
+        res = self.client.patch(url, payload)
 
-#         url = detail_url(self.league.id)
-#         res = self.client.delete(url)
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
-#         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.league.refresh_from_db()
+        self.assertNotEqual(self.league.name, payload['name'])
 
-#         self.assertTrue(League.objects.filter(id=self.league.id).exists())
+    def test_user_cannot_delete_league(self):
+        """Test that a regular user cannot delete the league."""
+        self.client.force_authenticate(self.user)
 
-#     def test_other_user_cannot_access_league(self):
-#         """Test non-league user cannot access its details."""
-#         self.client.force_authenticate(self.other_user)
+        url = detail_url(self.league.id)
+        res = self.client.delete(url)
 
-#         url = detail_url(self.league.id)
-#         res = self.client.get(url)
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
-#         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(League.objects.filter(id=self.league.id).exists())
+
+    def test_other_user_cannot_access_league(self):
+        """Test non-league user cannot access its details."""
+        self.client.force_authenticate(self.other_user)
+
+        url = detail_url(self.league.id)
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)

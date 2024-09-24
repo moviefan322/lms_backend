@@ -75,7 +75,6 @@ def create_team(season, **params):
     """Create and return a sample team"""
     defaults = {
         'name': random_string(),
-        'captain': create_player(),
         'season': season,
     }
     defaults.update(params)
@@ -184,7 +183,8 @@ class TestLeagueModel(TestCase):
         season = create_season(league=create_league())
         team = create_team(season=season)
 
-        team_season = TeamSeason.objects.create(team=team, season=season)
+        team_season = TeamSeason.objects.create(
+            team=team, season=season, captain=create_player())
 
         player.teams.add(team_season)
 
@@ -213,25 +213,15 @@ class TestTeamModel(TestCase):
     def test_create_team(self):
         """Test creating a team."""
         name = 'Test Team'
-        captain = create_player()
         league = create_league()
         season = create_season(league)
 
         team = Team.objects.create(
             name=name,
-            captain=captain,
             season=season
         )
 
         self.assertEqual(team.name, name)
-        self.assertEqual(team.captain, captain)
-
-    def test_create_team_without_captain_fails(self):
-        """Test that creating a team without a captain raises an error."""
-        league = create_league()
-        season = create_season(league)
-        with self.assertRaises(IntegrityError):
-            Team.objects.create(name='Team Without Captain', season=season)
 
 
 class TestModelRelationships(TestCase):
@@ -240,15 +230,16 @@ class TestModelRelationships(TestCase):
     def test_player_added_to_multiple_teams(self):
         """Test a player can belong to multiple teams."""
         player = create_player()
-        # Create seasons for the teams
         season1 = create_season(league=create_league())
         season2 = create_season(league=create_league())
 
         team1 = create_team(season=season1)
         team2 = create_team(season=season2)
 
-        team_season1 = TeamSeason.objects.create(team=team1, season=season1)
-        team_season2 = TeamSeason.objects.create(team=team2, season=season2)
+        team_season1 = TeamSeason.objects.create(
+            team=team1, season=season1, captain=create_player())
+        team_season2 = TeamSeason.objects.create(
+            team=team2, season=season2, captain=create_player())
 
         player.teams.add(team_season1, team_season2)
 
@@ -264,12 +255,10 @@ class TestModelRelationships(TestCase):
 
         Team.objects.create(
             name='Test Team',
-            captain=create_player(),
             season=season
         )
         Team.objects.create(
             name='Test Team2',
-            captain=create_player(),
             season=season
         )
 
@@ -303,6 +292,14 @@ class TestSeasonModel(TestCase):
         with self.assertRaises(IntegrityError):
             create_season(league=league, name='Winter Season', year=2024)
 
+    def test_create_team_without_captain_fails(self):
+        """Test that creating a team without a captain raises an error."""
+        league = create_league()
+        season = create_season(league)
+        team = Team.objects.create(name='Team Without Captain', season=season)
+        with self.assertRaises(IntegrityError):
+            TeamSeason.objects.create(team=team, season=season)
+
 
 class TestTeamSeasonModel(TestCase):
     """Test TeamSeason model and related functionality"""
@@ -313,7 +310,8 @@ class TestTeamSeasonModel(TestCase):
         season = create_season(league=league)
         team = create_team(season=season)
 
-        team_season = TeamSeason.objects.create(team=team, season=season)
+        team_season = TeamSeason.objects.create(
+            team=team, season=season, captain=create_player())
 
         self.assertEqual(team_season.team, team)
         self.assertEqual(team_season.season, season)
@@ -327,7 +325,7 @@ class TestTeamSeasonModel(TestCase):
         team = create_team(season=season)
 
         team_season = TeamSeason.objects.create(
-            team=team, season=season, wins=10, losses=5)
+            team=team, season=season, wins=10, losses=5, captain=create_player())
 
         self.assertEqual(team_season.wins, 10)
         self.assertEqual(team_season.losses, 5)
@@ -339,7 +337,7 @@ class TestTeamSeasonModel(TestCase):
 
         self.assertEqual(team_season.wins, 11)
         self.assertEqual(team_season.losses, 6)
-    
+
     def test_team_season_games_won_games_lost(self):
         """Test updating team season stats."""
         league = create_league()
@@ -347,7 +345,12 @@ class TestTeamSeasonModel(TestCase):
         team = create_team(season=season)
 
         team_season = TeamSeason.objects.create(
-            team=team, season=season, games_won=10, games_lost=5)
+            team=team,
+            season=season,
+            games_won=10,
+            games_lost=5,
+            captain=create_player()
+        )
 
         self.assertEqual(team_season.games_won, 10)
         self.assertEqual(team_season.games_lost, 5)
@@ -366,7 +369,8 @@ class TestTeamSeasonModel(TestCase):
         season = create_season(league=league)
         team = create_team(season=season)
 
-        TeamSeason.objects.create(team=team, season=season)
+        TeamSeason.objects.create(
+            team=team, season=season, captain=create_player())
 
         with self.assertRaises(IntegrityError):
             TeamSeason.objects.create(team=team, season=season)
@@ -382,7 +386,8 @@ class TestTeamPlayerModel(TestCase):
         season = create_season(league=league)
         team = create_team(season=season)
 
-        team_season = TeamSeason.objects.create(team=team, season=season)
+        team_season = TeamSeason.objects.create(
+            team=team, season=season, captain=create_player())
 
         team_player = TeamPlayer.objects.create(
             player=player,
@@ -406,7 +411,8 @@ class TestTeamPlayerModel(TestCase):
         season = create_season(league=league)
         team = create_team(season=season)
 
-        team_season = TeamSeason.objects.create(team=team, season=season)
+        team_season = TeamSeason.objects.create(
+            team=team, season=season, captain=create_player())
 
         TeamPlayer.objects.create(player=player, team_season=team_season)
 
