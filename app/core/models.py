@@ -133,6 +133,9 @@ class TeamSeason(models.Model):
     games_won = models.IntegerField(default=0)
     games_lost = models.IntegerField(default=0)
 
+    class Meta:
+        unique_together = ('team', 'season')
+
     def __str__(self):
         return f'{self.team.name} in {self.season.name} ({self.season.year})'
 

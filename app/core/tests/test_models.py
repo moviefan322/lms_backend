@@ -339,6 +339,37 @@ class TestTeamSeasonModel(TestCase):
 
         self.assertEqual(team_season.wins, 11)
         self.assertEqual(team_season.losses, 6)
+    
+    def test_team_season_games_won_games_lost(self):
+        """Test updating team season stats."""
+        league = create_league()
+        season = create_season(league=league)
+        team = create_team(season=season)
+
+        team_season = TeamSeason.objects.create(
+            team=team, season=season, games_won=10, games_lost=5)
+
+        self.assertEqual(team_season.games_won, 10)
+        self.assertEqual(team_season.games_lost, 5)
+
+        team_season.games_won += 1
+        team_season.games_lost += 1
+        team_season.save()
+
+        self.assertEqual(team_season.games_won, 11)
+        self.assertEqual(team_season.games_lost, 6)
+
+    def test_duplicate_team_in_same_season(self):
+        """Test that a team cannot be added
+        multiple times to the same season."""
+        league = create_league()
+        season = create_season(league=league)
+        team = create_team(season=season)
+
+        TeamSeason.objects.create(team=team, season=season)
+
+        with self.assertRaises(IntegrityError):
+            TeamSeason.objects.create(team=team, season=season)
 
 
 class TestTeamPlayerModel(TestCase):
