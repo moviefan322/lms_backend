@@ -60,11 +60,11 @@ def create_season(league, **params):
     return Season.objects.create(**defaults)
 
 
-def create_team(season, **params):
+def create_team(league, **params):
     """Helper function to create a team."""
     defaults = {
         'name': random_string(),
-        'season': season,
+        'league': league,
     }
     defaults.update(params)
 
@@ -396,7 +396,7 @@ class UserLeagueApiTests(TestCase):
 
         self.league = create_league(admin_user=self.admin_user)
         self.season = create_season(league=self.league)
-        self.team = create_team(season=self.season)
+        self.team = create_team(league=self.league)
         self.team_season = create_team_season(
             team=self.team, season=self.season)
         create_team_player(team_season=self.team_season, player=self.player)
@@ -583,7 +583,7 @@ class UserSeasonApiTests(TestCase):
 
         self.league = create_league(admin_user=self.admin_user)
         self.season = create_season(league=self.league)
-        self.team = create_team(season=self.season)
+        self.team = create_team(league=self.league)
         self.team_season = create_team_season(
             team=self.team, season=self.season)
         create_team_player(team_season=self.team_season, player=self.player)

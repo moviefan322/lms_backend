@@ -71,11 +71,11 @@ def create_player():
     return player
 
 
-def create_team(season, **params):
+def create_team(league, **params):
     """Create and return a sample team"""
     defaults = {
         'name': random_string(),
-        'season': season,
+        'league': league,
     }
     defaults.update(params)
 
@@ -180,8 +180,9 @@ class TestLeagueModel(TestCase):
         """Test that a player cannot be added to a team
         multiple times in the same season."""
         player = create_player()
-        season = create_season(league=create_league())
-        team = create_team(season=season)
+        league = create_league()
+        season = create_season(league=league)
+        team = create_team(league=league)
 
         team_season = TeamSeason.objects.create(
             team=team, season=season, captain=create_player())
@@ -218,7 +219,7 @@ class TestTeamModel(TestCase):
 
         team = Team.objects.create(
             name=name,
-            season=season
+            league=league
         )
 
         self.assertEqual(team.name, name)
@@ -230,11 +231,13 @@ class TestModelRelationships(TestCase):
     def test_player_added_to_multiple_teams(self):
         """Test a player can belong to multiple teams."""
         player = create_player()
-        season1 = create_season(league=create_league())
-        season2 = create_season(league=create_league())
+        league1 = create_league()
+        league2 = create_league()
+        season1 = create_season(league=league1)
+        season2 = create_season(league=league2)
 
-        team1 = create_team(season=season1)
-        team2 = create_team(season=season2)
+        team1 = create_team(league=league1)
+        team2 = create_team(league=league2)
 
         team_season1 = TeamSeason.objects.create(
             team=team1, season=season1, captain=create_player())
@@ -255,11 +258,11 @@ class TestModelRelationships(TestCase):
 
         Team.objects.create(
             name='Test Team',
-            season=season
+            league=league
         )
         Team.objects.create(
             name='Test Team2',
-            season=season
+            league=league
         )
 
         league_id = league.id
@@ -267,7 +270,7 @@ class TestModelRelationships(TestCase):
         league.delete()
 
         self.assertEqual(Team.objects.filter(
-            season__league_id=league_id
+            league_id=league_id
         ).count(), 0)
 
 
@@ -296,7 +299,7 @@ class TestSeasonModel(TestCase):
         """Test that creating a team without a captain raises an error."""
         league = create_league()
         season = create_season(league)
-        team = Team.objects.create(name='Team Without Captain', season=season)
+        team = Team.objects.create(name='Team Without Captain', league=league)
         with self.assertRaises(IntegrityError):
             TeamSeason.objects.create(team=team, season=season)
 
@@ -308,7 +311,7 @@ class TestTeamSeasonModel(TestCase):
         """Test creating a team season entry."""
         league = create_league()
         season = create_season(league=league)
-        team = create_team(season=season)
+        team = create_team(league=league)
 
         team_season = TeamSeason.objects.create(
             team=team, season=season, captain=create_player())
@@ -322,7 +325,7 @@ class TestTeamSeasonModel(TestCase):
         """Test updating team season stats."""
         league = create_league()
         season = create_season(league=league)
-        team = create_team(season=season)
+        team = create_team(league=league)
 
         team_season = TeamSeason.objects.create(
             team=team,
@@ -347,7 +350,7 @@ class TestTeamSeasonModel(TestCase):
         """Test updating team season stats."""
         league = create_league()
         season = create_season(league=league)
-        team = create_team(season=season)
+        team = create_team(league=league)
 
         team_season = TeamSeason.objects.create(
             team=team,
@@ -372,7 +375,7 @@ class TestTeamSeasonModel(TestCase):
         multiple times to the same season."""
         league = create_league()
         season = create_season(league=league)
-        team = create_team(season=season)
+        team = create_team(league=league)
 
         TeamSeason.objects.create(
             team=team, season=season, captain=create_player())
@@ -389,7 +392,7 @@ class TestTeamPlayerModel(TestCase):
         player = create_player()
         league = create_league()
         season = create_season(league=league)
-        team = create_team(season=season)
+        team = create_team(league=league)
 
         team_season = TeamSeason.objects.create(
             team=team, season=season, captain=create_player())
@@ -414,7 +417,7 @@ class TestTeamPlayerModel(TestCase):
         player = create_player()
         league = create_league()
         season = create_season(league=league)
-        team = create_team(season=season)
+        team = create_team(league=league)
 
         team_season = TeamSeason.objects.create(
             team=team, season=season, captain=create_player())
