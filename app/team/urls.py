@@ -12,7 +12,6 @@ from team import views
 
 router = DefaultRouter()
 router.register('team', views.TeamViewSet, basename='team')
-router.register('teamseason', views.TeamSeasonViewSet, basename='teamseason')
 
 app_name = 'team'
 

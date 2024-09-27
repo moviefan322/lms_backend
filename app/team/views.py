@@ -22,12 +22,14 @@ class TeamViewSet(viewsets.ModelViewSet):
             return Team.objects.none()
 
         player_leagues = League.objects.filter(
-            teams__teamseason__players=user.player_profile
+            seasons__teamseason__team_players__player=user.player_profile
         ).distinct()
 
-        return Team.objects.filter(
+        teams = Team.objects.filter(
             league__in=player_leagues
         ).order_by('name').distinct()
+
+        return teams
 
     def perform_create(self, serializer):
         """Create a new team."""

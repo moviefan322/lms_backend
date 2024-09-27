@@ -422,25 +422,32 @@ class AdditionAdminLeagueApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
 
-    # def test_user_can_retrieve_teams(self):
-    #     """Test that a user can retrieve a list of teams in their league."""
-    #     self.other_user.player_profile.teams.clear()
-    #     league = create_league(self.admin_user)
-    #     team1 = create_team(league)
-    #     create_team(league)
+    def test_user_can_retrieve_teams(self):
+        """Test that a user can retrieve a list of teams in their league."""
+        self.other_user.player_profile.teams.clear()
 
-    #     team1.players.add(self.other_user.player_profile)
+        league = create_league(self.admin_user)
+        team1 = create_team(league)
+        team2 = create_team(league)
 
-    #     self.client.force_authenticate(self.other_user)
+        season = create_season(league)
+        team_season1 = TeamSeason.objects.create(
+            team=team1, season=season, captain=self.other_user.player_profile)
+        TeamSeason.objects.create(
+            team=team2, season=season, captain=create_player())
 
-    #     res = self.client.get(TEAMS_URL)
+        create_team_player(team_season1, self.other_user.player_profile)
 
-    #     teams = Team.objects.filter(league=league).order_by('name')
-    #     serializer = TeamSerializer(teams, many=True)
+        self.client.force_authenticate(self.other_user)
 
-    #     self.assertEqual(res.status_code, status.HTTP_200_OK)
-    #     self.assertEqual(res.data, serializer.data)
-    #     self.assertEqual(len(res.data), 2)
+        res = self.client.get(TEAMS_URL)
+
+        teams = Team.objects.filter(league=league).order_by('name')
+        serializer = TeamSerializer(teams, many=True)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 2)
+        self.assertEqual(res.data, serializer.data)
 
     # def test_user_can_get_team_detail(self):
     #     """Test that a user can retrieve a team detail."""
