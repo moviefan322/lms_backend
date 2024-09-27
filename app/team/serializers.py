@@ -1,14 +1,6 @@
 from rest_framework import serializers
-from core.models import TeamSeason, Team, TeamPlayer
+from core.models import Team, TeamSeason, TeamPlayer
 from player.serializers import PlayerSerializer
-
-
-class TeamSerializer(serializers.ModelSerializer):
-    """Serializer for the Team model."""
-
-    class Meta:
-        model = Team
-        fields = ['id', 'name', 'league']
 
 
 class TeamPlayerSerializer(serializers.ModelSerializer):
@@ -23,13 +15,22 @@ class TeamPlayerSerializer(serializers.ModelSerializer):
 
 class TeamSeasonSerializer(serializers.ModelSerializer):
     """Serializer for the TeamSeason model."""
-    team = TeamSerializer(read_only=True)
     captain = PlayerSerializer(read_only=True)
-    team_players = TeamPlayerSerializer(
-        many=True, source='teamplayer_set', read_only=True)
+    team_players = TeamPlayerSerializer(many=True, read_only=True)
 
     class Meta:
         model = TeamSeason
-        fields = ['id', 'team', 'season', 'captain', 'wins',
-                  'losses', 'games_won', 'games_lost', 'team_players']
-        read_only_fields = ['id', 'season']
+        fields = ['id', 'name', 'captain', 'wins', 'losses', 'games_won', 'games_lost', 'team_players']
+
+
+class TeamSerializer(serializers.ModelSerializer):
+    """Serializer for the Team model."""
+    team_season = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Team
+        fields = ['id', 'name', 'league', 'team_season']
+
+    def get_team_season(self, obj):
+        team_season = TeamSeason.objects.filter(team=obj).first()
+        return TeamSeasonSerializer(team_season).data if team_season else None

@@ -49,16 +49,16 @@ def create_player(**params):
     return Player.objects.create(**defaults)
 
 
-# def create_season(league, **params):
-#     """Create and return a sample season"""
-#     defaults = {
-#         'name': random_string(),
-#         'year': 2021,
-#         'league': league,
-#     }
-#     defaults.update(params)
+def create_season(league, **params):
+    """Create and return a sample season"""
+    defaults = {
+        'name': random_string(),
+        'year': 2021,
+        'league': league,
+    }
+    defaults.update(params)
 
-#     return Season.objects.create(**defaults)
+    return Season.objects.create(**defaults)
 
 
 def create_team(league, **params):
@@ -77,7 +77,7 @@ def create_team_player(team_season, player, **params):
     defaults = {
         'team_season': team_season,
         'player': player,
-        'handicap': 3,  # or whatever default values you want
+        'handicap': 3,
     }
     defaults.update(params)
 
@@ -165,22 +165,22 @@ class AdminTeamApiTests(TestCase):
         self.assertEqual(res.data, serializer.data)
         self.assertEqual(len(res.data), 2)
 
-    # def test_team_has_players(self):
-    #     """Test retrieving a team that has players."""
-    #     league = create_league(self.admin_user)
-    #     season = create_season(league)
-    #     team = create_team(season)
-    #     player = create_player()
-    #     team_season = TeamSeason.objects.get(team=team, season=season)
+    def test_team_has_players(self):
+        """Test retrieving a team that has players."""
+        league = create_league(self.admin_user)
+        season = create_season(league)
+        team = create_team(league)
+        player = create_player()
+        team_season = TeamSeason.objects.create(team=team, season=season, captain=player)
 
-    #     # Explicitly create TeamPlayer instance
-    #     create_team_player(team_season, player)
+        create_team_player(team_season, player)
 
-    #     url = detail_url(team_season.id)
-    #     res = self.client.get(url)
+        url = detail_url(team.id)
+        res = self.client.get(url)
 
-    #     self.assertEqual(res.status_code, status.HTTP_200_OK)
-    #     self.assertIn(player.name, [p['name'] for p in res.data['players']])
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        self.assertIn(player.name, [p['player']['name'] for p in res.data['team_season']['team_players']])
 
     def test_create_team_invalid(self):
         """Test creating a team with invalid payload fails."""

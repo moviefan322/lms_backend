@@ -122,6 +122,7 @@ class Team(models.Model):
 class TeamSeason(models.Model):
     """Intermediary model for tracking team stats in a specific season."""
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
     captain = models.ForeignKey(
         'Player',

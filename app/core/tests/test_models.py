@@ -215,7 +215,6 @@ class TestTeamModel(TestCase):
         """Test creating a team."""
         name = 'Test Team'
         league = create_league()
-        season = create_season(league)
 
         team = Team.objects.create(
             name=name,
@@ -254,7 +253,6 @@ class TestModelRelationships(TestCase):
     def test_delete_league_deletes_teams(self):
         """Test that deleting a league also deletes associated teams."""
         league = create_league()
-        season = create_season(league=league)
 
         Team.objects.create(
             name='Test Team',

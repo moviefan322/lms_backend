@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from core.models import Team, League
+from core.models import Team, League, TeamSeason
 from team import serializers
 from .permissions import IsAdminOrReadOnly
 
@@ -36,3 +36,24 @@ class TeamViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         """Update a team if the user is authorized."""
         serializer.save()
+
+
+class TeamSeasonViewSet(viewsets.ModelViewSet):
+    """View for managing TeamSeason API requests."""
+    queryset = TeamSeason.objects.all()
+    serializer_class = serializers.TeamSeasonSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter team season by team or season if provided."""
+        queryset = self.queryset
+
+        team_id = self.request.query_params.get('team_id')
+        if team_id:
+            queryset = queryset.filter(team_id=team_id)
+
+        season_id = self.request.query_params.get('season_id')
+        if season_id:
+            queryset = queryset.filter(season_id=season_id)
+
+        return queryset
