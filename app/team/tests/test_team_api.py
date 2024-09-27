@@ -171,7 +171,8 @@ class AdminTeamApiTests(TestCase):
         season = create_season(league)
         team = create_team(league)
         player = create_player()
-        team_season = TeamSeason.objects.create(team=team, season=season, captain=player)
+        team_season = TeamSeason.objects.create(
+            team=team, season=season, captain=player)
 
         create_team_player(team_season, player)
 
@@ -180,7 +181,8 @@ class AdminTeamApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
-        self.assertIn(player.name, [p['player']['name'] for p in res.data['team_season']['team_players']])
+        self.assertIn(player.name, [p['player']['name']
+                      for p in res.data['team_season']['team_players']])
 
     def test_create_team_invalid(self):
         """Test creating a team with invalid payload fails."""
