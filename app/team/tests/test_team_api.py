@@ -449,22 +449,26 @@ class AdditionAdminLeagueApiTests(TestCase):
         self.assertEqual(len(res.data), 2)
         self.assertEqual(res.data, serializer.data)
 
-    # def test_user_can_get_team_detail(self):
-    #     """Test that a user can retrieve a team detail."""
-    #     self.other_user.player_profile.teams.clear()
+    def test_user_can_get_team_detail(self):
+        """Test that a user can retrieve a team detail."""
+        self.other_user.player_profile.teams.clear()
 
-    #     league = create_league(self.admin_user)
-    #     team = create_team(league)
-    #     team.players.add(self.other_user.player_profile)
+        league = create_league(self.admin_user)
+        team = create_team(league)
+        season = create_season(league)
+        team_season = TeamSeason.objects.create(
+            team=team, season=season, captain=self.other_user.player_profile)
+        create_team_player(team_season, self.other_user.player_profile)
 
-    #     self.client.force_authenticate(self.other_user)
+        self.client.force_authenticate(self.other_user)
 
-    #     url = detail_url(team.id)
-    #     res = self.client.get(url)
+        url = detail_url(team.id)
+        res = self.client.get(url)
 
-    #     self.assertEqual(res.status_code, status.HTTP_200_OK)
-    #     serializer = TeamSerializer(team)
-    #     self.assertEqual(res.data, serializer.data)
-    #     self.assertEqual(res.data['name'], team.name)
-    #     self.assertEqual(res.data['league'], team.league.id)
-    #     self.assertEqual(res.data['captain'], team.captain.id)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        serializer = TeamSerializer(team)
+        self.assertEqual(res.data, serializer.data)
+        self.assertEqual(res.data['name'], team.name)
+        self.assertEqual(res.data['league'], team.league.id)
+        self.assertEqual(res.data['team_season']
+                         ['captain']['id'], team_season.captain.id)
