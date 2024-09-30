@@ -164,7 +164,8 @@ class TeamPlayer(models.Model):
         on_delete=models.CASCADE,
         related_name='team_players'
     )
-    player = models.ForeignKey('Player', on_delete=models.CASCADE)
+    player = models.ForeignKey(
+        'Player', on_delete=models.CASCADE, related_name='team_players')
     handicap = models.IntegerField(default=3)
     wins = models.IntegerField(default=0)
     losses = models.IntegerField(default=0)

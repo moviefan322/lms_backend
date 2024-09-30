@@ -1,7 +1,7 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
-from core.models import Player, League, Team
+from core.models import TeamSeason, TeamPlayer, Player, League
 from player import serializers
 from .permissions import IsAdminOrReadOnly
 
@@ -12,29 +12,28 @@ class PlayerViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
     def get_queryset(self):
-        """Return players for admin or a player."""
+        """Return players for admin or the authenticated player."""
         user = self.request.user
 
         if user.is_admin:
             return Player.objects.all().order_by('name')
 
-        if not user.is_active or not user.player_profile:
+        if not user.is_active or not hasattr(user, 'player_profile'):
             return Player.objects.none()
 
-        player_leagues = League.objects.filter(
-            seasons__teamseason__team_players__player=user.player_profile
-        ).distinct()
+        return Player.objects.filter(player_profile=user.player_profile)
 
-        teams = Team.objects.filter(
-            league__in=player_leagues
-        ).order_by('name').distinct()
-
-        return teams
-    
     def perform_create(self, serializer):
-        """Create a new team."""
-        serializer.save()
+        """Create a new player, optionally associating with a TeamSeason."""
+        player = serializer.save()
 
-    def perform_update(self, serializer):
-        """Update a team if the user is authorized."""
-        serializer.save()
+        # Check if 'team_season' was provided, and associate player with it
+        team_season_id = self.request.data.get('team_season')
+        if team_season_id:
+            try:
+                team_season = TeamSeason.objects.get(id=team_season_id)
+                TeamPlayer.objects.create(player=player, team_season=team_season)
+            except TeamSeason.DoesNotExist:
+                raise serializers.ValidationError("Invalid team_season ID")
+
+
