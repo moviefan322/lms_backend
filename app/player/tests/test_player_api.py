@@ -21,8 +21,6 @@ def create_league(admin_user, **params):
     """Create and return a sample league"""
     defaults = {
         'name': random_string(),
-        'season': 'Winter',
-        'year': 2021,
         'is_active': True,
     }
     defaults.update(params)
