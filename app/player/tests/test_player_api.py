@@ -119,7 +119,6 @@ class PublicPlayerScoreApiTests(TestCase):
 
     def test_retrieve_players_unauthorized(self):
         """Test retrieving players"""
-        league = create_league(create_admin())
         create_player()
         create_player()
         self.client.logout()
@@ -161,7 +160,7 @@ class AdminPlayerApiTests(TestCase):
         league = create_league(self.admin_user)
         season = create_season(league)
         team = create_team(league)
-        
+
         team_season = TeamSeason.objects.create(
             team=team,
             name='Test Team Season',
@@ -182,13 +181,12 @@ class AdminPlayerApiTests(TestCase):
         self.assertEqual(player.name, payload['name'])
         self.assertEqual(player.is_active, payload['is_active'])
 
-        team_player = TeamPlayer.objects.get(player=player, team_season=team_season)
+        team_player = TeamPlayer.objects.get(
+            player=player, team_season=team_season)
         self.assertIsNotNone(team_player)
 
     def test_create_player_invalid(self):
         """Test creating a player with invalid data"""
-        league = create_league(self.admin_user)
-        team = create_team(league)
         payload = {
             'name': '',
             'handicap': -10,

@@ -1,5 +1,4 @@
 from rest_framework import permissions
-from core.models import TeamSeason, League
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):
@@ -9,7 +8,7 @@ class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return request.user.is_authenticated
-        
+
         # Allow any admin to create a player
         if request.method == 'POST':
             return request.user.is_authenticated and request.user.is_admin

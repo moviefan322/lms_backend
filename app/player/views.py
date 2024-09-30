@@ -1,7 +1,7 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 
-from core.models import TeamSeason, TeamPlayer, Player, League
+from core.models import TeamSeason, TeamPlayer, Player
 from player import serializers
 from .permissions import IsAdminOrReadOnly
 
@@ -32,8 +32,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         if team_season_id:
             try:
                 team_season = TeamSeason.objects.get(id=team_season_id)
-                TeamPlayer.objects.create(player=player, team_season=team_season)
+                TeamPlayer.objects.create(
+                    player=player, team_season=team_season)
             except TeamSeason.DoesNotExist:
                 raise serializers.ValidationError("Invalid team_season ID")
-
-

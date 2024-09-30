@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import Player, TeamSeason
+from core.models import Player
 
 
 class PlayerSerializer(serializers.ModelSerializer):
