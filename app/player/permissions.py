@@ -13,6 +13,15 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         if request.method == 'POST':
             return request.user.is_authenticated and request.user.is_admin
 
+        if request.method == 'PUT':
+            return request.user.is_authenticated and request.user.is_admin
+
+        if request.method == 'PATCH':
+            return request.user.is_authenticated and request.user.is_admin
+
+        if request.method == 'DELETE':
+            return request.user.is_authenticated and request.user.is_admin
+
         return False
 
     def has_object_permission(self, request, view, obj):

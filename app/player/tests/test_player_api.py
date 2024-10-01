@@ -225,3 +225,24 @@ class AdminPlayerApiTests(TestCase):
 
         self.assertEqual(res.data, serializer.data)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_partial_update_player(self):
+        """Test updating a player with patch"""
+        player = create_player()
+        league = create_league(self.admin_user)
+        season = create_season(league)
+        team = create_team(league)
+        team_season = create_team_season(team, season, captain=create_player())
+        create_team_player(player, team_season)
+
+        payload = {
+            'is_active': False,
+        }
+
+        url = reverse('player:player-detail', args=[player.id])
+        res = self.client.patch(url, payload)
+        print(res.data)
+
+        player.refresh_from_db()
+        self.assertFalse(player.is_active)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
