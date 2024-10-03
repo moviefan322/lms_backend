@@ -188,7 +188,8 @@ class Schedule(models.Model):
 
 
 class MatchNight(models.Model):
-    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, related_name='match_nights')
+    schedule = models.ForeignKey(
+        Schedule, on_delete=models.CASCADE, related_name='match_nights')
     date = models.DateField()
     start_time = models.TimeField(null=True, blank=True)
     status = models.CharField(max_length=50, default='Scheduled')
@@ -197,7 +198,8 @@ class MatchNight(models.Model):
         unique_together = ('date', 'schedule')
 
     def save(self, *args, **kwargs):
-        """Override save method to use schedule's default start time if not provided."""
+        """Override save method to use schedule's
+        default start time if not provided."""
         if not self.start_time:
             self.start_time = self.schedule.default_start_time
         super().save(*args, **kwargs)
@@ -207,9 +209,12 @@ class MatchNight(models.Model):
 
 
 class Match(models.Model):
-    match_night = models.ForeignKey(MatchNight, on_delete=models.CASCADE, related_name='matches')
-    home_team = models.ForeignKey(TeamSeason, on_delete=models.CASCADE, related_name='matches_as_team_a')
-    away_team = models.ForeignKey(TeamSeason, on_delete=models.CASCADE, related_name='matches_as_team_b')
+    match_night = models.ForeignKey(
+        MatchNight, on_delete=models.CASCADE, related_name='matches')
+    home_team = models.ForeignKey(
+        TeamSeason, on_delete=models.CASCADE, related_name='matches_as_team_a')
+    away_team = models.ForeignKey(
+        TeamSeason, on_delete=models.CASCADE, related_name='matches_as_team_b')
     match_time = models.TimeField()
     result = models.CharField(max_length=255, null=True, blank=True)
     status = models.CharField(max_length=50, default='Scheduled')
@@ -218,7 +223,8 @@ class Match(models.Model):
         unique_together = ('match_night', 'home_team', 'away_team')
 
     def save(self, *args, **kwargs):
-        """Override save to inherit match time from MatchNight if not provided."""
+        """Override save to inherit match time
+        from MatchNight if not provided."""
         if not self.match_time:
             self.match_time = self.match_night.start_time
         super().save(*args, **kwargs)

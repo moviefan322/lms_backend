@@ -542,7 +542,7 @@ class MatchModelTests(TestCase):
         self.assertEqual(match.match_night, match_night)
 
     def test_match_unique_constraint(self):
-        """Test that the same match cannot be created twice for the same match night"""
+        """Test that the same match cannot be created twice"""
         league = create_league()
         season = create_season(league)
         team1 = create_team(league)
