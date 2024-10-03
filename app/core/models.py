@@ -176,3 +176,49 @@ class TeamPlayer(models.Model):
 
     def __str__(self):
         return f'{self.team_season} - {self.player}'
+
+
+class Schedule(models.Model):
+    season = models.ForeignKey(Season, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    default_start_time = models.TimeField(null=False, default='19:00')
+
+    def __str__(self):
+        return f"Schedule for {self.season.name}"
+
+
+class MatchNight(models.Model):
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, related_name='match_nights')
+    date = models.DateField()
+    start_time = models.TimeField(null=True, blank=True)
+    status = models.CharField(max_length=50, default='Scheduled')
+
+    class Meta:
+        unique_together = ('date', 'schedule')
+
+    def save(self, *args, **kwargs):
+        """Override save method to use schedule's default start time if not provided."""
+        if not self.start_time:
+            self.start_time = self.schedule.default_start_time
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.date} - {self.schedule}"
+
+
+class Match(models.Model):
+    match_night = models.ForeignKey(MatchNight, on_delete=models.CASCADE, related_name='matches')
+    home_team = models.ForeignKey(TeamSeason, on_delete=models.CASCADE, related_name='matches_as_team_a')
+    away_team = models.ForeignKey(TeamSeason, on_delete=models.CASCADE, related_name='matches_as_team_b')
+    match_time = models.TimeField()
+    result = models.CharField(max_length=255, null=True, blank=True)
+    status = models.CharField(max_length=50, default='Scheduled')
+
+    class Meta:
+        unique_together = ('match_night', 'home_team', 'away_team')
+
+    def save(self, *args, **kwargs):
+        """Override save to inherit match time from MatchNight if not provided."""
+        if not self.match_time:
+            self.match_time = self.match_night.start_time
+        super().save(*args, **kwargs)

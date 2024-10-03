@@ -10,9 +10,12 @@ from core.models import (
     League,
     Season,
     TeamSeason,
-    TeamPlayer
+    TeamPlayer,
+    Match,
+    MatchNight,
+    Schedule
 )
-
+from django.utils import timezone
 import random
 import string
 
@@ -80,6 +83,52 @@ def create_team(league, **params):
     defaults.update(params)
 
     return Team.objects.create(**defaults)
+
+
+def create_schedule(season, **params):
+    """Create and return a sample Schedule."""
+    defaults = {
+        'season': season,
+    }
+    defaults.update(params)
+
+    return Schedule.objects.create(**defaults)
+
+
+def create_match_night(schedule, **params):
+    """Create and return a sample MatchNight."""
+    defaults = {
+        'date': timezone.now().date(),
+        'schedule': schedule,
+        'start_time': schedule.default_start_time
+    }
+    defaults.update(params)
+
+    return MatchNight.objects.create(**defaults)
+
+
+def create_match(match_night, team1, team2, **params):
+    """Create and return a sample Match."""
+    defaults = {
+        'home_team': team1,
+        'away_team': team2,
+        'match_night': match_night,
+    }
+    defaults.update(params)
+
+    return Match.objects.create(**defaults)
+
+
+def create_team_season(team, season, **params):
+    """Create and return a sample TeamSeason."""
+    defaults = {
+        'team': team,
+        'season': season,
+        'captain': create_player(),
+    }
+    defaults.update(params)
+
+    return TeamSeason.objects.create(**defaults)
 
 
 class TestUserModel(TestCase):
@@ -424,3 +473,87 @@ class TestTeamPlayerModel(TestCase):
 
         with self.assertRaises(IntegrityError):
             TeamPlayer.objects.create(player=player, team_season=team_season)
+
+
+class ScheduleModelTests(TestCase):
+    """Test Schedule model functionality"""
+
+    def test_create_schedule(self):
+        """Test creating a Schedule is successful"""
+        league = create_league()
+        season = create_season(league)
+        schedule = create_schedule(season)
+
+        self.assertEqual(schedule.season, season)
+
+
+class MatchNightModelTests(TestCase):
+    """Test MatchNight model functionality"""
+
+    def test_create_match_night(self):
+        """Test creating a MatchNight with default start time."""
+        league = create_league()
+        season = create_season(league)
+        schedule = create_schedule(season, default_start_time='18:00')
+        match_night = create_match_night(schedule)
+
+        self.assertEqual(match_night.schedule, schedule)
+        self.assertEqual(match_night.start_time, schedule.default_start_time)
+
+    def test_create_match_night_with_custom_start_time(self):
+        """Test creating a MatchNight with custom start time."""
+        league = create_league()
+        season = create_season(league)
+        schedule = create_schedule(season)
+        custom_time = '20:00'
+        match_night = create_match_night(schedule, start_time=custom_time)
+
+        self.assertEqual(match_night.start_time, custom_time)
+
+    def test_match_night_unique_constraint(self):
+        """Test the same match night cannot be added twice for a schedule."""
+        league = create_league()
+        season = create_season(league)
+        schedule = create_schedule(season)
+
+        create_match_night(schedule, date=timezone.now().date())
+
+        with self.assertRaises(IntegrityError):
+            create_match_night(schedule, date=timezone.now().date())
+
+
+class MatchModelTests(TestCase):
+    """Test Match model functionality"""
+
+    def test_create_match(self):
+        """Test creating a Match is successful"""
+        league = create_league()
+        season = create_season(league)
+        team1 = create_team(league)
+        team2 = create_team(league)
+        team_season1 = create_team_season(team1, season)
+        team_season2 = create_team_season(team2, season)
+        schedule = create_schedule(season)
+        match_night = create_match_night(schedule)
+        match = create_match(match_night, team_season1, team_season2)
+
+        self.assertEqual(match.home_team, team_season1)
+        self.assertEqual(match.away_team, team_season2)
+        self.assertEqual(match.match_night, match_night)
+
+    def test_match_unique_constraint(self):
+        """Test that the same match cannot be created twice for the same match night"""
+        league = create_league()
+        season = create_season(league)
+        team1 = create_team(league)
+        team2 = create_team(league)
+        team_season1 = create_team_season(team1, season)
+        team_season2 = create_team_season(team2, season)
+
+        schedule = create_schedule(season)
+        match_night = create_match_night(schedule)
+
+        create_match(match_night, team_season1, team_season2)
+
+        with self.assertRaises(IntegrityError):
+            create_match(match_night, team_season1, team_season2)
