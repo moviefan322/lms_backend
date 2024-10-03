@@ -21,11 +21,12 @@ class PlayerViewSet(viewsets.ModelViewSet):
 
         # Regular users can see players from the same league
         if user.is_active and user.player_profile:
+            leagues = user.player_profile.teams.values('season__league')
             return Player.objects.filter(
-                team_players__team_season__season__league__in=user.player_profile.teams.values('season__league')
+                team_players__team_season__season__league__in=leagues
             ).distinct()
 
-        # If the user has no player profile or isn't in any league, return empty
+        # If the user has no player profile or isn't in a league, return empty
         return Player.objects.none()
 
     def perform_create(self, serializer):
@@ -37,6 +38,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         if team_season_id:
             try:
                 team_season = TeamSeason.objects.get(id=team_season_id)
-                TeamPlayer.objects.create(player=player, team_season=team_season)
+                TeamPlayer.objects.create(
+                    player=player, team_season=team_season)
             except TeamSeason.DoesNotExist:
                 raise serializers.ValidationError("Invalid team_season ID")

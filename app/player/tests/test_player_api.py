@@ -333,7 +333,7 @@ class UserPlayerApiTests(TestCase):
 
     def test_retrieve_players(self):
         """Test retrieving a list of players"""
-        
+
         player1 = create_player(name='Player 1')
         player2 = create_player(name='Player 2')
 
@@ -365,10 +365,10 @@ class UserPlayerApiTests(TestCase):
         season = create_season(league)
         team = create_team(league)
         player = create_player(name="Test Player")
-        
+
         team_season = create_team_season(team, season, captain=player)
         create_team_player(player, team_season)
-        
+
         self.user.player_profile = player
         self.user.save()
 
@@ -414,7 +414,8 @@ class UserPlayerApiTests(TestCase):
 
         other_team = create_team(league)
         other_player = create_player(name='Player 2')
-        other_team_season = create_team_season(other_team, season, captain=other_player)
+        other_team_season = create_team_season(
+            other_team, season, captain=other_player)
         create_team_player(other_player, other_team_season)
 
         self.user.player_profile = player
