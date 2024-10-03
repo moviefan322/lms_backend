@@ -246,6 +246,28 @@ class AdminPlayerApiTests(TestCase):
         self.assertFalse(player.is_active)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
+    def test_full_update_player(self):
+        """Test updating a player with put"""
+        player = create_player()
+        league = create_league(self.admin_user)
+        season = create_season(league)
+        team = create_team(league)
+        team_season = create_team_season(team, season, captain=player)
+        create_team_player(player, team_season)
+
+        payload = {
+            'name': 'Updated Player',
+            'is_active': False,
+        }
+
+        url = reverse('player:player-detail', args=[player.id])
+        res = self.client.put(url, payload)
+
+        player.refresh_from_db()
+        self.assertEqual(player.name, payload['name'])
+        self.assertFalse(player.is_active)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
 
 class AdditionalAdminPlayerApiTests(TestCase):
     """Test the authorized additional admin user player API"""
@@ -296,3 +318,115 @@ class AdditionalAdminPlayerApiTests(TestCase):
         team_player = TeamPlayer.objects.get(
             player=player, team_season=team_season)
         self.assertIsNotNone(team_player)
+
+
+class UserPlayerApiTests(TestCase):
+    """Test the authorized user player API"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(
+            'example_user@example.com',
+            'testpass123'
+        )
+        self.client.force_authenticate(self.user)
+
+    def test_retrieve_players(self):
+        """Test retrieving a list of players"""
+        
+        player1 = create_player(name='Player 1')
+        player2 = create_player(name='Player 2')
+
+        league = create_league(create_admin())
+        season = create_season(league)
+        team = create_team(league)
+        team_season = create_team_season(team, season, captain=player1)
+        create_team_player(player1, team_season)
+        create_team_player(player2, team_season)
+
+        self.user.player_profile = player1
+        self.user.save()
+
+        res = self.client.get(PLAYER_URL)
+
+        players = Player.objects.all().order_by('name')
+        serializer = PlayerSerializer(players, many=True)
+
+        sorted_response_data = sorted(res.data, key=lambda x: x['id'])
+        sorted_serializer_data = sorted(serializer.data, key=lambda x: x['id'])
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(sorted_response_data, sorted_serializer_data)
+        self.assertEqual(len(res.data), 2)
+
+    def test_view_player_detail(self):
+        """Test viewing a player detail"""
+        league = create_league(create_admin())
+        season = create_season(league)
+        team = create_team(league)
+        player = create_player(name="Test Player")
+        
+        team_season = create_team_season(team, season, captain=player)
+        create_team_player(player, team_season)
+        
+        self.user.player_profile = player
+        self.user.save()
+
+        url = reverse('player:player-detail', args=[player.id])
+        res = self.client.get(url)
+
+        serializer = PlayerDetailSerializer(player)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, serializer.data)
+
+    def test_user_can_modify_own_player_data(self):
+        """Test that a user can modify their own player data"""
+        player = create_player(name='Player 1')
+        league = create_league(create_admin())
+        season = create_season(league)
+        team = create_team(league)
+        team_season = create_team_season(team, season, captain=player)
+        create_team_player(player, team_season)
+
+        self.user.player_profile = player
+        self.user.save()
+
+        payload = {
+            'is_active': False,
+        }
+
+        url = reverse('player:player-detail', args=[player.id])
+        res = self.client.patch(url, payload)
+
+        player.refresh_from_db()
+        self.assertFalse(player.is_active)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_user_cannot_modify_other_player_data(self):
+        """Test that a user cannot modify another player's data"""
+        player = create_player(name='Player 1')
+        league = create_league(create_admin())
+        season = create_season(league)
+        team = create_team(league)
+        team_season = create_team_season(team, season, captain=player)
+        create_team_player(player, team_season)
+
+        other_team = create_team(league)
+        other_player = create_player(name='Player 2')
+        other_team_season = create_team_season(other_team, season, captain=other_player)
+        create_team_player(other_player, other_team_season)
+
+        self.user.player_profile = player
+        self.user.save()
+
+        payload = {
+            'is_active': False,
+        }
+
+        url = reverse('player:player-detail', args=[other_player.id])
+        res = self.client.patch(url, payload)
+
+        other_player.refresh_from_db()
+        self.assertTrue(other_player.is_active)
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
