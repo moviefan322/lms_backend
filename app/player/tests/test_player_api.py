@@ -241,8 +241,58 @@ class AdminPlayerApiTests(TestCase):
 
         url = reverse('player:player-detail', args=[player.id])
         res = self.client.patch(url, payload)
-        print(res.data)
 
         player.refresh_from_db()
         self.assertFalse(player.is_active)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+
+class AdditionalAdminPlayerApiTests(TestCase):
+    """Test the authorized additional admin user player API"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin_user = get_user_model().objects.create_user(
+            'additional_admin@example.com',
+            'testpass123',
+            is_admin=True
+        )
+        self.other_admin_user = get_user_model().objects.create_user(
+            'additional_admin2@example.com',
+            'testpass123',
+            is_admin=True,
+        )
+        self.client.force_authenticate(self.admin_user)
+
+    def test_create_player_successful(self):
+        """Test that an additional admin user can create a player"""
+        league = create_league(self.admin_user)
+        league.additional_admins.add(self.other_admin_user)
+        season = create_season(league)
+        team = create_team(league)
+
+        team_season = TeamSeason.objects.create(
+            team=team,
+            name='Test Team Season',
+            season=season,
+            captain=create_player(name='Captain')
+        )
+
+        self.client.force_authenticate(self.other_admin_user)
+
+        payload = {
+            'name': 'Test Player',
+            'is_active': True,
+            'team_season': team_season.id
+        }
+
+        res = self.client.post(PLAYER_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        player = Player.objects.get(id=res.data['id'])
+        self.assertEqual(player.name, payload['name'])
+        self.assertEqual(player.is_active, payload['is_active'])
+
+        team_player = TeamPlayer.objects.get(
+            player=player, team_season=team_season)
+        self.assertIsNotNone(team_player)
