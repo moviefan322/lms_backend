@@ -557,3 +557,104 @@ class MatchModelTests(TestCase):
 
         with self.assertRaises(IntegrityError):
             create_match(match_night, team_season1, team_season2)
+
+    def test_match_winner(self):
+        """Test updating the winner of a match."""
+        league = create_league()
+        season = create_season(league)
+        team1 = create_team(league)
+        team2 = create_team(league)
+        team_season1 = create_team_season(team1, season)
+        team_season2 = create_team_season(team2, season)
+
+        schedule = create_schedule(season)
+        match_night = create_match_night(schedule)
+        match = create_match(match_night, team_season1, team_season2)
+
+        match.winner = 'Home'
+        match.save()
+
+        self.assertEqual(match.winner, 'Home')
+
+        match.winner = 'Away'
+        match.save()
+
+        self.assertEqual(match.winner, 'Away')
+
+    def test_update_team_records(self):
+        """Test that team records are updated correctly after a match."""
+        league = create_league()
+        season = create_season(league)
+        team1 = create_team(league)
+        team2 = create_team(league)
+        team_season1 = create_team_season(team1, season)
+        team_season2 = create_team_season(team2, season)
+        schedule = create_schedule(season)
+        match_night = create_match_night(schedule)
+
+        match = create_match(match_night, team_season1, team_season2)
+        match.home_race_to = 15
+        match.away_race_to = 12
+        match.home_score = 15
+        match.away_score = 10
+        match.status = 'completed'
+
+        match.save()
+
+        match.refresh_from_db()
+        self.assertEqual(match.winner, 'home')
+
+        team_season1.refresh_from_db()
+        self.assertEqual(team_season1.wins, 1)
+        self.assertEqual(team_season1.games_won, 15)
+
+        team_season2.refresh_from_db()
+        self.assertEqual(team_season2.losses, 1)
+        self.assertEqual(team_season2.games_lost, 10)
+
+    def test_team_snapshot_recorded(self):
+        """Test that team snapshot is correctly recorded after a match."""
+        league = create_league()
+        season = create_season(league)
+        team1 = create_team(league)
+        team2 = create_team(league)
+        team_season1 = create_team_season(team1, season)
+        team_season2 = create_team_season(team2, season)
+        schedule = create_schedule(season)
+        match_night = create_match_night(schedule)
+
+        match = create_match(match_night, team_season1, team_season2)
+
+        team_season1.wins = 5
+        team_season1.losses = 2
+        team_season1.games_won = 30
+        team_season1.games_lost = 15
+        team_season1.save()
+
+        team_season2.wins = 6
+        team_season2.losses = 1
+        team_season2.games_won = 35
+        team_season2.games_lost = 10
+        team_season2.save()
+
+        match.home_race_to = 15
+        match.away_race_to = 12
+        match.home_score = 15
+        match.away_score = 10
+        match.status = 'completed'
+        match.save()
+
+        match.refresh_from_db()
+        self.assertIsNotNone(match.team_snapshot)
+
+        self.assertEqual(match.team_snapshot['home_team']['team_name'], team1.name)
+        self.assertEqual(match.team_snapshot['home_team']['wins'], 5)
+        self.assertEqual(match.team_snapshot['home_team']['losses'], 2)
+        self.assertEqual(match.team_snapshot['home_team']['games_won'], 30)
+        self.assertEqual(match.team_snapshot['home_team']['games_lost'], 15)
+
+        self.assertEqual(match.team_snapshot['away_team']['team_name'], team2.name)
+        self.assertEqual(match.team_snapshot['away_team']['wins'], 6)
+        self.assertEqual(match.team_snapshot['away_team']['losses'], 1)
+        self.assertEqual(match.team_snapshot['away_team']['games_won'], 35)
+        self.assertEqual(match.team_snapshot['away_team']['games_lost'], 10)

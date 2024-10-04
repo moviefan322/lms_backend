@@ -212,19 +212,83 @@ class Match(models.Model):
     match_night = models.ForeignKey(
         MatchNight, on_delete=models.CASCADE, related_name='matches')
     home_team = models.ForeignKey(
-        TeamSeason, on_delete=models.CASCADE, related_name='matches_as_team_a')
+        TeamSeason, on_delete=models.CASCADE, related_name='home_matches')
     away_team = models.ForeignKey(
-        TeamSeason, on_delete=models.CASCADE, related_name='matches_as_team_b')
+        TeamSeason, on_delete=models.CASCADE, related_name='away_matches')
     match_time = models.TimeField()
-    result = models.CharField(max_length=255, null=True, blank=True)
+    home_score = models.IntegerField(null=True, blank=True)
+    away_score = models.IntegerField(null=True, blank=True)
+    home_race_to = models.IntegerField(null=True, blank=True)
+    away_race_to = models.IntegerField(null=True, blank=True)
+    winner = models.CharField(max_length=10, null=True,
+                              blank=True)
     status = models.CharField(max_length=50, default='Scheduled')
+    team_snapshot = models.JSONField(null=True, blank=True)
+    lineups = models.JSONField(null=True, blank=True)
 
     class Meta:
         unique_together = ('match_night', 'home_team', 'away_team')
 
+    def calculate_race_to(self):
+        """Calculate race-to values based on lineups."""
+        if self.lineups:
+            home_team_handicap = sum(player['handicap']
+                                     for player in self.lineups['home_team'])
+            away_team_handicap = sum(player['handicap']
+                                     for player in self.lineups['away_team'])
+
+            self.home_race_to = max(20, 30 - home_team_handicap)
+            self.away_race_to = max(20, 30 - away_team_handicap)
+            self.save()
+
+    def set_team_snapshot(self):
+        """Store a snapshot of both teams' current records."""
+        self.team_snapshot = {
+            "home_team": {
+                "team_name": self.home_team.team.name,
+                "wins": self.home_team.wins,
+                "losses": self.home_team.losses,
+                "captain": self.home_team.captain.name,
+                "games_won": self.home_team.games_won,
+                "games_lost": self.home_team.games_lost,
+            },
+            "away_team": {
+                "team_name": self.away_team.team.name,
+                "wins": self.away_team.wins,
+                "losses": self.away_team.losses,
+                "captain": self.away_team.captain.name,
+                "games_won": self.away_team.games_won,
+                "games_lost": self.away_team.games_lost,
+            }
+        }
+
+    def update_match_winner(self):
+        """Determine the winner based on race-to values."""
+        if self.home_score is not None and self.away_score is not None:
+            if self.home_score >= self.home_race_to:
+                self.winner = 'home'
+                self.update_team_records(self.home_team, self.away_team)
+            elif self.away_score >= self.away_race_to:
+                self.winner = 'away'
+                self.update_team_records(self.away_team, self.home_team)
+
+    def update_team_records(self, winning_team, losing_team):
+        """Update the win/loss records for TeamSeason."""
+        winning_team.wins += 1
+        winning_team.games_won += self.home_score if winning_team == self.home_team else self.away_score
+        losing_team.losses += 1
+        losing_team.games_lost += self.home_score if losing_team == self.home_team else self.away_score
+
+        winning_team.save()
+        losing_team.save()
+
     def save(self, *args, **kwargs):
-        """Override save to inherit match time
-        from MatchNight if not provided."""
+        """Override save to inherit match time from MatchNight if not provided."""
         if not self.match_time:
             self.match_time = self.match_night.start_time
+
+        if self.status == 'completed':
+            self.set_team_snapshot()
+            self.update_match_winner()
+
         super().save(*args, **kwargs)
