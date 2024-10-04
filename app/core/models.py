@@ -299,3 +299,70 @@ class Match(models.Model):
             self.update_match_winner()
 
         super().save(*args, **kwargs)
+
+
+class Game(models.Model):
+    match = models.ForeignKey(
+        Match, on_delete=models.CASCADE, related_name='games')
+    home_player = models.ForeignKey(
+        TeamPlayer, on_delete=models.CASCADE, related_name='home_games')
+    away_player = models.ForeignKey(
+        TeamPlayer, on_delete=models.CASCADE, related_name='away_games')
+    home_race_to = models.IntegerField(null=True, blank=True)
+    away_race_to = models.IntegerField(null=True, blank=True)
+    home_score = models.IntegerField(null=True, blank=True)
+    away_score = models.IntegerField(null=True, blank=True)
+    winner = models.CharField(max_length=10, null=True, blank=True)
+    status = models.CharField(max_length=50, default='Scheduled')
+    player_snapshot = models.JSONField(null=True, blank=True)
+
+    def update_game_winner(self):
+        """Determine the winner based on scores and update match scores."""
+        if (self.winner is None and
+            self.home_score is not None and
+                self.away_score is not None):
+            if self.match.home_score is None:
+                self.match.home_score = 0
+            if self.match.away_score is None:
+                self.match.away_score = 0
+
+            if self.home_score >= self.home_race_to:
+                self.winner = 'home'
+                self.match.home_score += 1
+            elif self.away_score >= self.away_race_to:
+                self.winner = 'away'
+                self.match.away_score += 1
+            else:
+                self.winner = 'tie'
+
+            self.match.save()
+
+    def set_player_snapshot(self):
+        """Store a snapshot of both players' current records."""
+        self.player_snapshot = {
+            "home_player": {
+                "player_name": self.home_player.player.name,
+                "wins": self.home_player.wins,
+                "losses": self.home_player.losses,
+                "handicap": self.home_player.handicap
+            },
+            "away_player": {
+                "player_name": self.away_player.player.name,
+                "wins": self.away_player.wins,
+                "losses": self.away_player.losses,
+                "handicap": self.away_player.handicap
+            }
+        }
+
+    def save(self, *args, **kwargs):
+        """Override save to set race-to values and update winner/status."""
+        if self.home_race_to is None:
+            self.home_race_to = 1
+        if self.away_race_to is None:
+            self.away_race_to = 1
+
+        if self.status == 'completed':
+            self.set_player_snapshot()
+            self.update_game_winner()
+
+        super().save(*args, **kwargs)

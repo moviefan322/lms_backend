@@ -13,7 +13,8 @@ from core.models import (
     TeamPlayer,
     Match,
     MatchNight,
-    Schedule
+    Schedule,
+    Game
 )
 from django.utils import timezone
 import random
@@ -85,6 +86,17 @@ def create_team(league, **params):
     return Team.objects.create(**defaults)
 
 
+def create_team_player(team_season, **params):
+    """Create and return a sample TeamPlayer."""
+    defaults = {
+        'player': create_player(),
+        'team_season': team_season,
+    }
+    defaults.update(params)
+
+    return TeamPlayer.objects.create(**defaults)
+
+
 def create_schedule(season, **params):
     """Create and return a sample Schedule."""
     defaults = {
@@ -129,6 +141,22 @@ def create_team_season(team, season, **params):
     defaults.update(params)
 
     return TeamSeason.objects.create(**defaults)
+
+
+def create_game(match, home_player, away_player, **params):
+    """Create and return a game."""
+    defaults = {
+        'home_player': home_player,
+        'away_player': away_player,
+        'home_score': 1,
+        'away_score': 0,
+        'status': 'completed',
+        'home_race_to': 1,
+        'away_race_to': 1
+    }
+    defaults.update(params)
+
+    return Game.objects.create(match=match, **defaults)
 
 
 class TestUserModel(TestCase):
@@ -660,3 +688,80 @@ class MatchModelTests(TestCase):
         self.assertEqual(match.team_snapshot['away_team']['losses'], 1)
         self.assertEqual(match.team_snapshot['away_team']['games_won'], 35)
         self.assertEqual(match.team_snapshot['away_team']['games_lost'], 10)
+
+
+class GameModelTests(TestCase):
+    """Test Game model functionality."""
+
+    def setUp(self):
+        """Set up required objects for testing."""
+        league = create_league()
+        season = create_season(league)
+        self.team1 = create_team(league)
+        self.team2 = create_team(league)
+        self.team_season1 = create_team_season(self.team1, season)
+        self.team_season2 = create_team_season(self.team2, season)
+        schedule = create_schedule(season)
+        self.match_night = create_match_night(schedule)
+        self.match = create_match(
+            self.match_night, self.team_season1, self.team_season2)
+        self.home_player = create_team_player(self.team_season1)
+        self.away_player = create_team_player(self.team_season2)
+
+    def test_create_game(self):
+        """Test creating a game and setting basic fields."""
+        game = create_game(self.match, self.home_player,
+                           self.away_player, home_score=5, away_score=3)
+
+        self.assertEqual(game.match, self.match)
+        self.assertEqual(game.home_player, self.home_player)
+        self.assertEqual(game.away_player, self.away_player)
+        self.assertEqual(game.home_score, 5)
+        self.assertEqual(game.away_score, 3)
+        self.assertEqual(game.status, 'completed')
+
+    def test_update_game_winner(self):
+        """Test updating the game winner based on scores."""
+        game = create_game(
+            self.match,
+            self.home_player,
+            self.away_player,
+            home_score=7,
+            away_score=5,
+            home_race_to=7,
+            away_race_to=7
+        )
+
+        game.save()
+
+        game.refresh_from_db()
+        self.assertEqual(game.winner, 'home')
+        self.match.refresh_from_db()
+        self.assertEqual(self.match.home_score, 1)
+
+    def test_set_player_snapshot(self):
+        """Test that the player snapshot is set
+        correctly when the game is completed."""
+        game = create_game(self.match, self.home_player,
+                           self.away_player, home_score=7, away_score=5)
+
+        game.save()
+
+        self.assertIn('home_player', game.player_snapshot)
+        self.assertIn('away_player', game.player_snapshot)
+        self.assertEqual(
+            game.player_snapshot['home_player']['player_name'],
+            self.home_player.player.name)
+        self.assertEqual(
+            game.player_snapshot['away_player']['player_name'],
+            self.away_player.player.name)
+
+    def test_default_race_to_value(self):
+        """Test that the default race-to value is set to 1 if not provided."""
+        game = create_game(self.match, self.home_player, self.away_player)
+
+        game.save()
+
+        game.refresh_from_db()
+        self.assertEqual(game.home_race_to, 1)
+        self.assertEqual(game.away_race_to, 1)
