@@ -647,13 +647,15 @@ class MatchModelTests(TestCase):
         match.refresh_from_db()
         self.assertIsNotNone(match.team_snapshot)
 
-        self.assertEqual(match.team_snapshot['home_team']['team_name'], team1.name)
+        self.assertEqual(
+            match.team_snapshot['home_team']['team_name'], team1.name)
         self.assertEqual(match.team_snapshot['home_team']['wins'], 5)
         self.assertEqual(match.team_snapshot['home_team']['losses'], 2)
         self.assertEqual(match.team_snapshot['home_team']['games_won'], 30)
         self.assertEqual(match.team_snapshot['home_team']['games_lost'], 15)
 
-        self.assertEqual(match.team_snapshot['away_team']['team_name'], team2.name)
+        self.assertEqual(
+            match.team_snapshot['away_team']['team_name'], team2.name)
         self.assertEqual(match.team_snapshot['away_team']['wins'], 6)
         self.assertEqual(match.team_snapshot['away_team']['losses'], 1)
         self.assertEqual(match.team_snapshot['away_team']['games_won'], 35)

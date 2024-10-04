@@ -275,15 +275,22 @@ class Match(models.Model):
     def update_team_records(self, winning_team, losing_team):
         """Update the win/loss records for TeamSeason."""
         winning_team.wins += 1
-        winning_team.games_won += self.home_score if winning_team == self.home_team else self.away_score
+        winning_team.games_won += (
+            self.home_score if winning_team == self.home_team
+            else self.away_score
+        )
         losing_team.losses += 1
-        losing_team.games_lost += self.home_score if losing_team == self.home_team else self.away_score
+        losing_team.games_lost += (
+            self.home_score if losing_team == self.home_team
+            else self.away_score
+        )
 
         winning_team.save()
         losing_team.save()
 
     def save(self, *args, **kwargs):
-        """Override save to inherit match time from MatchNight if not provided."""
+        """Override save to inherit match time
+        from MatchNight if not provided."""
         if not self.match_time:
             self.match_time = self.match_night.start_time
 
