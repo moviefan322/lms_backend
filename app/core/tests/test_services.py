@@ -1,114 +1,75 @@
-# from django.test import TestCase
-# from django.utils import timezone
-# from core.models import Schedule, TeamSeason, MatchNight, Match
-# from core.services import ScheduleService
-# from .test_models import (
-#     create_league,
-#     create_team,
-#     create_season,
-#     create_schedule,
-#     create_team_season
-# )
+import random
+from datetime import timedelta
+from core.models import MatchNight, Match, TeamSeason
 
-# class ScheduleServiceTests(TestCase):
-#     """Tests for schedule generation logic and validation."""
 
-#     def setUp(self):
-#         """Set up basic data for testing."""
-#         self.league = create_league()
-#         self.season = create_season(self.league)
-#         self.start_date = timezone.now().date()
-#         self.schedule = create_schedule(
-#             self.season, start_date=self.start_date, num_weeks=4
-#         )
+class ScheduleService:
+    def __init__(self, schedule):
+        self.schedule = schedule
+        self.teams = list(TeamSeason.objects.filter(season=schedule.season))
+        self.num_weeks = schedule.num_weeks
+        self.match_history = self._initialize_match_history()
+        self.home_away_tracker = {
+            team.id: {'home': 0, 'away': 0} for team in self.teams}
+        self.all_matchups = self._generate_all_matchups()
 
-#         self.team_season1 = create_team_season(
-#             create_team(self.league), self.season)
-#         self.team_season2 = create_team_season(
-#             create_team(self.league), self.season)
-#         self.team_season3 = create_team_season(
-#             create_team(self.league), self.season)
-#         self.team_season4 = create_team_season(
-#             create_team(self.league), self.season)
+    def _generate_all_matchups(self):
+        """Generate all possible matchups between teams,
+        ensuring no team plays another twice."""
+        matchups = []
+        for team1 in self.teams:
+            for team2 in self.teams:
+                if team1 != team2:
+                    matchup = frozenset([team1.id, team2.id])
+                    if matchup not in self.match_history:
+                        matchups.append((team1, team2))
+                        self.match_history.add(matchup)
+        random.shuffle(matchups)
+        return matchups
 
-#         self.teams = [self.team_season1, self.team_season2,
-#                       self.team_season3, self.team_season4]
+    def generate_schedule(self):
+        """Distribute all matchups evenly across the available match nights."""
+        current_week = 0
+        matchup_index = 0
 
-#     def test_generate_match_nights(self):
-#         """Test that the correct number of match nights are generated."""
-#         service = ScheduleService(self.schedule)
-#         num_weeks = self.schedule.num_weeks
-#         service.generate_schedule()
+        while current_week < self.num_weeks:
+            match_night_date = self.get_next_match_date(current_week)
+            match_night, _ = MatchNight.objects.get_or_create(
+                schedule=self.schedule,
+                date=match_night_date
+            )
 
-#         match_nights = MatchNight.objects.filter(schedule=self.schedule)
-#         self.assertEqual(match_nights.count(), num_weeks)
+            matches_for_night = 0
+            while (matches_for_night < 2 and
+                   matchup_index < len(self.all_matchups)):
+                team1, team2 = self.all_matchups[matchup_index]
 
-#         # Verify match nights start from the correct date
-#         for i, night in enumerate(match_nights):
-#             expected_date = self.start_date + timezone.timedelta(weeks=i)
-#             self.assertEqual(night.date, expected_date)
+                home_team = team1 if (
+                    self.home_away_tracker[team1.id]['home']
+                    <= self.home_away_tracker[team1.id]['away']
+                ) else team2
+                away_team = team2 if home_team == team1 else team1
 
-#     def test_generate_matches_per_night(self):
-#         """Test that matches are generated for each night, with no team playing twice per night."""
-#         service = ScheduleService(self.schedule)
-#         service.generate_schedule()
+                Match.objects.create(
+                    match_night=match_night,
+                    home_team=home_team,
+                    away_team=away_team,
+                    status="Scheduled"
+                )
 
-#         match_nights = MatchNight.objects.filter(schedule=self.schedule)
-#         for night in match_nights:
-#             matches = Match.objects.filter(match_night=night)
-#             # Since we have 4 teams, 2 matches should be created per night
-#             self.assertEqual(matches.count(), 2)
+                # Update trackers
+                self.home_away_tracker[home_team.id]['home'] += 1
+                self.home_away_tracker[away_team.id]['away'] += 1
+                matches_for_night += 1
+                matchup_index += 1
 
-#     def test_no_duplicate_matchups_before_all_teams_played(self):
-#         """Test that no team plays another team twice until all others have been played."""
-#         service = ScheduleService(self.schedule)
-#         service.generate_schedule()
+            current_week += 1
 
-#         played_pairs = set()
-#         match_nights = MatchNight.objects.filter(schedule=self.schedule)
+    def _initialize_match_history(self):
+        """Initialize the match history to track
+        which teams have already played each other."""
+        return set()
 
-#         for night in match_nights:
-#             matches = Match.objects.filter(match_night=night)
-#             for match in matches:
-#                 matchup = tuple(
-#                     sorted([match.home_team.id, match.away_team.id]))
-#                 self.assertNotIn(matchup, played_pairs)
-#                 played_pairs.add(matchup)
-
-#     def test_alternating_home_and_away(self):
-#         """Test that each team alternates between home and away matches."""
-#         service = ScheduleService(self.schedule)
-#         service.generate_schedule()
-
-#         home_away_tracker = {team.id: {'home': 0, 'away': 0}
-#                              for team in self.teams}
-
-#         match_nights = MatchNight.objects.filter(schedule=self.schedule)
-
-#         for night in match_nights:
-#             matches = Match.objects.filter(match_night=night)
-#             for match in matches:
-#                 home_away_tracker[match.home_team.id]['home'] += 1
-#                 home_away_tracker[match.away_team.id]['away'] += 1
-
-#         for team_id, counts in home_away_tracker.items():
-#             self.assertTrue(abs(counts['home'] - counts['away']) <= 1,
-#                             f"Team {team_id} home/away imbalance: {counts}")
-
-#     def test_even_matchups(self):
-#         """Test that every team plays each other evenly across the schedule."""
-#         service = ScheduleService(self.schedule)
-#         service.generate_schedule()
-
-#         match_counts = {team.id: 0 for team in self.teams}
-
-#         match_nights = MatchNight.objects.filter(schedule=self.schedule)
-#         for night in match_nights:
-#             matches = Match.objects.filter(match_night=night)
-#             for match in matches:
-#                 match_counts[match.home_team.id] += 1
-#                 match_counts[match.away_team.id] += 1
-
-#         for team_id, count in match_counts.items():
-#             # Each team should play evenly based on the number of weeks and teams.
-#             self.assertEqual(count, self.schedule.num_weeks)
+    def get_next_match_date(self, week_offset):
+        """Calculate the date of the match night."""
+        return self.schedule.start_date + timedelta(weeks=week_offset)

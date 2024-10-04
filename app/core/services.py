@@ -1,61 +1,65 @@
-# import random
-# from datetime import timedelta
-# from .models import MatchNight, Match, TeamSeason
+import random
+from datetime import timedelta
+from .models import MatchNight, Match, TeamSeason
 
 
-# class ScheduleService:
-#     def __init__(self, schedule):
-#         self.schedule = schedule
-#         self.teams = list(TeamSeason.objects.filter(
-#             season=schedule.season))
-#         self.num_teams = len(self.teams)
-#         self.num_weeks = schedule.num_weeks
+class ScheduleService:
+    def __init__(self, schedule):
+        self.schedule = schedule
+        self.teams = list(TeamSeason.objects.filter(season=schedule.season))
+        random.shuffle(self.teams)
+        self.num_weeks = schedule.num_weeks
+        self.match_history = self._initialize_match_history()
+        self.home_away_tracker = {
+            team.id: {'home': 0, 'away': 0} for team in self.teams}
 
-#     def generate_schedule(self):
-#         """Generates a schedule where no team plays another twice before all others are played."""
-#         matches = []
-#         played_pairs = set()
-#         team_list = self.teams.copy()
+    def generate_schedule(self):
+        """Generate a schedule where no team plays
+        another twice before all others are played."""
+        current_week = 0
 
-#         for week in range(self.num_weeks):
-#             random.shuffle(team_list)  # Shuffle teams to ensure randomness
-#             week_matches = []
+        for team1 in self.teams:
+            for team2 in self.teams:
+                if team1 == team2:
+                    continue
 
-#             for i in range(0, len(team_list), 2):
-#                 if i + 1 < len(team_list):
-#                     team1, team2 = team_list[i], team_list[i + 1]
-#                     matchup = tuple(sorted([team1.id, team2.id]))
+                matchup = frozenset([team1.id, team2.id])
 
-#                     if matchup not in played_pairs:
-#                         # Assign home/away alternation
-#                         if week % 2 == 0:
-#                             home_team, away_team = team1, team2
-#                         else:
-#                             home_team, away_team = team2, team1
-                        
-#                         # Create the match night if necessary
-#                         match_night_date = self.get_next_match_date(week)
-#                         match_night, _ = MatchNight.objects.get_or_create(
-#                             schedule=self.schedule,
-#                             date=match_night_date
-#                         )
+                if matchup not in self.match_history:
+                    home_count = self.home_away_tracker[team1.id]['home']
+                    away_count = self.home_away_tracker[team1.id]['away']
 
-#                         # Create a new match and add to the schedule
-#                         Match.objects.create(
-#                             match_night=match_night,
-#                             home_team=home_team,
-#                             away_team=away_team,
-#                             status="Scheduled"
-#                         )
-                        
-#                         week_matches.append(matchup)
-#                         played_pairs.add(matchup)
+                    if home_count <= away_count:
+                        home_team, away_team = team1, team2
+                    else:
+                        home_team, away_team = team2, team1
 
-#             # If not all teams have a match, leave one team idle for the week
-#             if len(team_list) % 2 != 0:
-#                 idle_team = team_list[-1]  # Last team is idle this week
-#                 print(f"Week {week + 1}: Team {idle_team.id} is idle.")
+                    match_night_date = self.get_next_match_date(current_week)
+                    match_night, _ = MatchNight.objects.get_or_create(
+                        schedule=self.schedule,
+                        date=match_night_date
+                    )
 
-#     def get_next_match_date(self, week_offset):
-#         """Calculate the date of the match night."""
-#         return self.schedule.start_date + timedelta(weeks=week_offset)
+                    Match.objects.create(
+                        match_night=match_night,
+                        home_team=home_team,
+                        away_team=away_team,
+                        status="Scheduled"
+                    )
+
+                    self.match_history.add(matchup)
+                    self.home_away_tracker[home_team.id]['home'] += 1
+                    self.home_away_tracker[away_team.id]['away'] += 1
+
+                    current_week += 1
+                    if current_week >= self.num_weeks:
+                        return
+
+    def _initialize_match_history(self):
+        """Initialize the match history to track which
+        teams have already played each other."""
+        return set()
+
+    def get_next_match_date(self, week_offset):
+        """Calculate the date of the match night."""
+        return self.schedule.start_date + timedelta(weeks=week_offset)
