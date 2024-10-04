@@ -101,6 +101,8 @@ def create_schedule(season, **params):
     """Create and return a sample Schedule."""
     defaults = {
         'season': season,
+        'start_date': timezone.now().date(),
+        'num_weeks': 8,
     }
     defaults.update(params)
 

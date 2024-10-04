@@ -180,6 +180,8 @@ class TeamPlayer(models.Model):
 
 class Schedule(models.Model):
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
+    start_date = models.DateField()
+    num_weeks = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
     default_start_time = models.TimeField(null=False, default='19:00')
 
