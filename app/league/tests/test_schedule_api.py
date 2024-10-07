@@ -26,7 +26,8 @@ def matchnight_url(league_id, schedule_id):
 
 
 def matchnight_detail_url(league_id, schedule_id, matchnight_id):
-    """Return the matchnight detail URL for a given league, season, schedule, and matchnight."""
+    """Return the matchnight detail URL for a given
+    league, season, schedule, and matchnight."""
     return reverse('league:matchnight-detail',
                    args=[league_id, schedule_id, matchnight_id])
 
@@ -217,7 +218,8 @@ class AdminMatchNightApiTests(TestCase):
         self.assertEqual(res.data['date'], '2024-10-01')
 
     def test_match_night_inherits_start_time_from_schedule(self):
-        """Test that a match night inherits the start time from the schedule."""
+        """Test that a match night inherits the
+        start time from the schedule."""
         payload = {
             'schedule': self.schedule.id,
             'date': date(2024, 10, 1)
@@ -275,7 +277,7 @@ class AdminMatchNightApiTests(TestCase):
 
         url = matchnight_detail_url(
             self.league.id, self.schedule.id, matchnight.id)
-        res = self.client.patch(url, payload)
+        self.client.patch(url, payload)
 
         matchnight.refresh_from_db()
         self.assertEqual(matchnight.start_time, time(20, 0))
@@ -567,7 +569,6 @@ class UserMatchNightApiTests(TestCase):
         res = self.client.patch(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
-
 
     def test_user_cannot_delete_matchnight(self):
         """Test that a regular user cannot delete a match night."""
