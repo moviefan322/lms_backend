@@ -1,5 +1,5 @@
 import random
-from datetime import timedelta
+from datetime import timedelta, datetime
 from core.models import MatchNight, Match, TeamSeason
 
 
@@ -31,7 +31,12 @@ class ScheduleService:
         """Distribute all matchups evenly across the available match nights."""
         current_week = 0
         matchup_index = 0
+        num_teams = len(self.teams)
 
+        # Ensure we have an even number of teams, which should already be the case
+        assert num_teams % 2 == 0, "This scheduling algorithm assumes an even number of teams."
+
+        # Continue generating match nights until the required number of weeks is met
         while current_week < self.num_weeks:
             match_night_date = self.get_next_match_date(current_week)
             match_night, _ = MatchNight.objects.get_or_create(
@@ -40,13 +45,24 @@ class ScheduleService:
             )
 
             matches_for_night = 0
-            while (matches_for_night < 2 and
-                   matchup_index < len(self.all_matchups)):
+            teams_scheduled = set()
+
+            # Schedule matches for the night
+            while matches_for_night < num_teams // 2:
+                if matchup_index >= len(self.all_matchups):
+                    # Reshuffle the matchups when all have been used once
+                    random.shuffle(self.all_matchups)
+                    matchup_index = 0
+
                 team1, team2 = self.all_matchups[matchup_index]
 
+                # Ensure that neither team is already scheduled for this match night
+                if team1.id in teams_scheduled or team2.id in teams_scheduled:
+                    matchup_index += 1
+                    continue
+
                 home_team = team1 if (
-                    self.home_away_tracker[team1.id]['home']
-                    <= self.home_away_tracker[team1.id]['away']
+                    self.home_away_tracker[team1.id]['home'] <= self.home_away_tracker[team1.id]['away']
                 ) else team2
                 away_team = team2 if home_team == team1 else team1
 
@@ -56,11 +72,15 @@ class ScheduleService:
                     away_team=away_team,
                     status="Scheduled"
                 )
-
                 # Update trackers
                 self.home_away_tracker[home_team.id]['home'] += 1
                 self.home_away_tracker[away_team.id]['away'] += 1
                 matches_for_night += 1
+
+                # Mark these teams as scheduled for the night
+                teams_scheduled.add(home_team.id)
+                teams_scheduled.add(away_team.id)
+
                 matchup_index += 1
 
             current_week += 1
@@ -72,4 +92,10 @@ class ScheduleService:
 
     def get_next_match_date(self, week_offset):
         """Calculate the date of the match night."""
-        return self.schedule.start_date + timedelta(weeks=week_offset)
+        # Ensure start_date is a datetime object
+        if isinstance(self.schedule.start_date, str):
+            start_date = datetime.strptime(self.schedule.start_date, '%Y-%m-%d').date()
+        else:
+            start_date = self.schedule.start_date
+
+        return start_date + timedelta(weeks=week_offset)
