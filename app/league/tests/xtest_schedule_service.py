@@ -15,7 +15,7 @@ class ScheduleServiceTests(TestCase):
             is_admin=True,
         )
         self.client.force_authenticate(self.admin_user)
-        self.league = create_league(self.admin_user)
+        self.league = create_league()
         self.season = create_season(league=self.league)
         self.schedule = Schedule.objects.create(
             season=self.season,
