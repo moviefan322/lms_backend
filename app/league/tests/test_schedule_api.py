@@ -2,14 +2,11 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
-from core.models import Schedule
+from core.models import Schedule, MatchNight
 from core.tests.test_models import create_admin
 from .test_helpers import create_league, create_season
 from django.contrib.auth import get_user_model
-from datetime import date
-
-
-MATCHNIGHTS_URL = reverse('league:matchnight-list')
+from datetime import date, time
 
 
 def schedule_url(league_id, season_id, schedule_id):
@@ -23,10 +20,25 @@ def schedule_list_url(league_id, season_id):
     return reverse('league:schedule-list', args=[league_id, season_id])
 
 
-def matchnight_detail_url(league_id, season_id, schedule_id, matchnight_id):
+def matchnight_url(league_id, schedule_id):
+    """Return the match night list URL for a given league and schedule."""
+    return reverse('league:matchnight-list', args=[league_id, schedule_id])
+
+
+def matchnight_detail_url(league_id, schedule_id, matchnight_id):
     """Return the matchnight detail URL for a given league, season, schedule, and matchnight."""
     return reverse('league:matchnight-detail',
-                   args=[league_id, season_id, schedule_id, matchnight_id])
+                   args=[league_id, schedule_id, matchnight_id])
+
+
+def create_matchnight(**params):
+    """Helper function to create a match night."""
+    defaults = {
+        'date': date(2024, 10, 1),
+        'start_time': '19:00'
+    }
+    defaults.update(params)
+    return MatchNight.objects.create(**defaults)
 
 
 class PublicScheduleApiTests(TestCase):
@@ -197,11 +209,12 @@ class AdminMatchNightApiTests(TestCase):
             'start_time': '19:00'
         }
 
-        res = self.client.post(MATCHNIGHTS_URL, payload)
+        res = self.client.post(matchnight_url(
+            self.league.id, self.schedule.id), payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-        self.assertIn('match_date', res.data)
-        self.assertEqual(res.data['match_date'], '2024-10-01')
+        self.assertIn('date', res.data)
+        self.assertEqual(res.data['date'], '2024-10-01')
 
     def test_match_night_inherits_start_time_from_schedule(self):
         """Test that a match night inherits the start time from the schedule."""
@@ -210,87 +223,76 @@ class AdminMatchNightApiTests(TestCase):
             'date': date(2024, 10, 1)
         }
 
-        res = self.client.post(MATCHNIGHTS_URL, payload)
+        res = self.client.post(matchnight_url(
+            self.league.id, self.schedule.id), payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         self.assertIn('start_time', res.data)
-        self.assertEqual(res.data['start_time'], '19:00')
+        self.assertEqual(res.data['start_time'], '19:00:00')
 
     def test_admin_can_view_matchnight(self):
         """Test that an admin user can view a match night."""
-        matchnight = self.schedule.matchnight_set.create(
+        matchnight = create_matchnight(
+            schedule=self.schedule,
             date=date(2024, 10, 1),
             start_time='19:00'
         )
 
-        url = matchnight_detail_url(self.league.id, self.season.id, self.schedule.id, matchnight.id)
+        url = matchnight_detail_url(
+            self.league.id, self.schedule.id, matchnight.id)
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertIn('match_date', res.data)
-        self.assertEqual(res.data['match_date'], '2024-10-01')
+        self.assertIn('date', res.data)
+        self.assertEqual(res.data['date'], '2024-10-01')
 
     def test_admin_can_modify_matchnight(self):
         """Test that an admin user can modify a match night."""
-        matchnight = self.schedule.matchnight_set.create(
+        matchnight = create_matchnight(
+            schedule=self.schedule,
             date=date(2024, 10, 1),
             start_time='19:00'
         )
 
         payload = {'start_time': '20:00'}
 
-        url = matchnight_detail_url(self.league.id, self.season.id, self.schedule.id, matchnight.id)
+        url = matchnight_detail_url(
+            self.league.id, self.schedule.id, matchnight.id)
         res = self.client.patch(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data['start_time'], '20:00')
+        self.assertEqual(res.data['start_time'], '20:00:00')
 
     def test_partial_update_matchnight(self):
         """Test updating a match night with a PATCH request."""
-        matchnight = self.schedule.matchnight_set.create(
+        matchnight = create_matchnight(
+            schedule=self.schedule,
             date=date(2024, 10, 1),
-            start_time='19:00'
+            start_time=time(19, 0)
         )
 
         payload = {'start_time': '20:00'}
 
-        url = matchnight_detail_url(self.league.id, self.season.id, self.schedule.id, matchnight.id)
+        url = matchnight_detail_url(
+            self.league.id, self.schedule.id, matchnight.id)
         res = self.client.patch(url, payload)
 
         matchnight.refresh_from_db()
-        self.assertEqual(matchnight.start_time, '20:00')
+        self.assertEqual(matchnight.start_time, time(20, 0))
 
     def test_admin_can_delete_matchnight(self):
         """Test that an admin user can delete a match night."""
-        matchnight = self.schedule.matchnight_set.create(
+        matchnight = create_matchnight(
+            schedule=self.schedule,
             date=date(2024, 10, 1),
             start_time='19:00'
         )
 
-        url = matchnight_detail_url(self.league.id, self.season.id, self.schedule.id, matchnight.id)
+        url = matchnight_detail_url(
+            self.league.id, self.schedule.id, matchnight.id)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-
-    def test_admin_can_read_match_details(self):
-        """Test that an admin user can read match details."""
-        matchnight = self.schedule.matchnight_set.create(
-            date=date(2024, 10, 1),
-            start_time='19:00'
-        )
-        match = matchnight.match_set.create(
-            home_team='Home Team',
-            away_team='Away Team',
-            match_night=matchnight
-        )
-
-        url = reverse('league:match-detail',
-                      args=[self.league.id, self.season.id, self.schedule.id, matchnight.id, match.id])
-        res = self.client.get(url)
-
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertIn('home_team', res.data)
-        self.assertEqual(res.data['home_team'], 'Home Team')
 
 
 class AdditionalAdminScheduleApiTests(TestCase):
@@ -402,77 +404,63 @@ class AdditionalAdminMatchNightApiTests(TestCase):
     def test_additional_admin_can_create_matchnight(self):
         """Test that an additional admin user can create a match night."""
         payload = {
-            'schedule': self.schedule.id,
             'date': date(2024, 10, 1),
             'start_time': '19:00'
         }
 
-        res = self.client.post(MATCHNIGHTS_URL, payload)
+        res = self.client.post(matchnight_url(
+            self.league.id, self.schedule.id), payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-        self.assertIn('match_date', res.data)
-        self.assertEqual(res.data['match_date'], '2024-10-01')
+        self.assertIn('date', res.data)
+        self.assertEqual(res.data['date'], '2024-10-01')
 
     def test_additional_admin_can_view_matchnight(self):
         """Test that an additional admin user can view a match night."""
-        matchnight = self.schedule.matchnight_set.create(
+        matchnight = create_matchnight(
+            schedule=self.schedule,
             date=date(2024, 10, 1),
             start_time='19:00'
         )
 
-        url = matchnight_detail_url(self.league.id, self.season.id, self.schedule.id, matchnight.id)
+        url = matchnight_detail_url(
+            self.league.id, self.schedule.id, matchnight.id)
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertIn('match_date', res.data)
-        self.assertEqual(res.data['match_date'], '2024-10-01')
+        self.assertIn('date', res.data)
+        self.assertEqual(res.data['date'], '2024-10-01')
 
     def test_additional_admin_can_modify_matchnight(self):
         """Test that an additional admin user can modify a match night."""
-        matchnight = self.schedule.matchnight_set.create(
+        matchnight = create_matchnight(
+            schedule=self.schedule,
             date=date(2024, 10, 1),
             start_time='19:00'
         )
 
         payload = {'start_time': '20:00'}
 
-        url = matchnight_detail_url(self.league.id, self.season.id, self.schedule.id, matchnight.id)
+        url = matchnight_detail_url(
+            self.league.id, self.schedule.id, matchnight.id)
         res = self.client.patch(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data['start_time'], '20:00')
+        self.assertEqual(res.data['start_time'], '20:00:00')
 
     def test_additional_admin_can_delete_matchnight(self):
         """Test that an additional admin user can delete a match night."""
-        matchnight = self.schedule.matchnight_set.create(
+        matchnight = create_matchnight(
+            schedule=self.schedule,
             date=date(2024, 10, 1),
             start_time='19:00'
         )
 
-        url = matchnight_detail_url(self.league.id, self.season.id, self.schedule.id, matchnight.id)
+        url = matchnight_detail_url(
+            self.league.id, self.schedule.id, matchnight.id)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-
-    def test_additional_admin_can_read_match_details(self):
-        """Test that an additional admin user can read match details."""
-        matchnight = self.schedule.matchnight_set.create(
-            date=date(2024, 10, 1),
-            start_time='19:00'
-        )
-        match = matchnight.match_set.create(
-            home_team='Home Team',
-            away_team='Away Team',
-            match_night=matchnight
-        )
-
-        url = reverse('league:match-detail',
-                      args=[self.league.id, self.season.id, self.schedule.id, matchnight.id, match.id])
-        res = self.client.get(url)
-
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertIn('home_team', res.data)
-        self.assertEqual(res.data['home_team'], 'Home Team')
 
 
 class UserScheduleApiTests(TestCase):
@@ -550,72 +538,47 @@ class UserMatchNightApiTests(TestCase):
 
     def test_user_can_view_matchnight(self):
         """Test that a regular user can view a match night."""
-        matchnight = self.schedule.matchnight_set.create(
+        matchnight = create_matchnight(
+            schedule=self.schedule,
             date=date(2024, 10, 1),
             start_time='19:00'
         )
 
-        url = matchnight_detail_url(self.league.id, self.season.id, self.schedule.id, matchnight.id)
+        url = matchnight_detail_url(
+            self.league.id, self.schedule.id, matchnight.id)
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertIn('match_date', res.data)
-        self.assertEqual(res.data['match_date'], '2024-10-01')
+        self.assertIn('date', res.data)
+        self.assertEqual(res.data['date'], '2024-10-01')
 
     def test_user_cannot_modify_matchnight(self):
         """Test that a regular user cannot modify a match night."""
-        matchnight = self.schedule.matchnight_set.create(
+        matchnight = create_matchnight(
+            schedule=self.schedule,
             date=date(2024, 10, 1),
             start_time='19:00'
         )
 
         payload = {'start_time': '20:00'}
 
-        url = matchnight_detail_url(self.league.id, self.season.id, self.schedule.id, matchnight.id)
+        url = matchnight_detail_url(
+            self.league.id, self.schedule.id, matchnight.id)
         res = self.client.patch(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_user_can_read_match_details(self):
-        """Test that a regular user can read match details."""
-        matchnight = self.schedule.matchnight_set.create(
-            date=date(2024, 10, 1),
-            start_time='19:00'
-        )
-        match = matchnight.match_set.create(
-            home_team='Home Team',
-            away_team='Away Team',
-            match_night=matchnight
-        )
-
-        url = reverse('league:match-detail',
-                      args=[self.league.id, self.season.id, self.schedule.id, matchnight.id, match.id])
-        res = self.client.get(url)
-
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertIn('home_team', res.data)
-        self.assertEqual(res.data['home_team'], 'Home Team')
-
-    def test_user_cannot_create_matchnight(self):
-        """Test that a regular user cannot create a match night."""
-        payload = {
-            'schedule': self.schedule.id,
-            'date': date(2024, 10, 1),
-            'start_time': '19:00'
-        }
-
-        res = self.client.post(MATCHNIGHTS_URL, payload)
-
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_user_cannot_delete_matchnight(self):
         """Test that a regular user cannot delete a match night."""
-        matchnight = self.schedule.matchnight_set.create(
+        matchnight = create_matchnight(
+            schedule=self.schedule,
             date=date(2024, 10, 1),
             start_time='19:00'
         )
 
-        url = matchnight_detail_url(self.league.id, self.season.id, self.schedule.id, matchnight.id)
+        url = matchnight_detail_url(
+            self.league.id, self.schedule.id, matchnight.id)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)

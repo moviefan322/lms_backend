@@ -2,9 +2,40 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from django.db import models
 
-from core.models import League, Season, Schedule
+from core.models import League, Season, Schedule, MatchNight
 from league import serializers
 from .permissions import IsAdminOrLeagueMember
+
+
+class MatchNightViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing match nights."""
+    serializer_class = serializers.MatchNightSerializer
+    permission_classes = [IsAuthenticated, IsAdminOrLeagueMember]
+
+    def get_queryset(self):
+        """Return match nights for the given season."""
+        schedule_id = self.kwargs['schedule_id']
+        return MatchNight.objects.filter(schedule_id=schedule_id)
+
+    def perform_create(self, serializer):
+        """Create a new match night for the given schedule."""
+        schedule_id = self.kwargs['schedule_id']
+        schedule = Schedule.objects.get(id=schedule_id)
+        serializer.save(schedule=schedule)
+
+    def perform_update(self, serializer):
+        """Update a match night."""
+        schedule_id = self.kwargs['schedule_id']
+        schedule = Schedule.objects.get(id=schedule_id)
+        serializer.save(schedule=schedule)
+
+    def get_object(self):
+        """Retrieve and return a match night,
+        and ensure league permissions are checked."""
+        obj = super().get_object()
+        league = obj.schedule.season.league
+        self.check_object_permissions(self.request, league)
+        return obj
 
 
 class ScheduleViewSet(viewsets.ModelViewSet):

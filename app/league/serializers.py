@@ -1,14 +1,24 @@
 from rest_framework import serializers
-from core.models import League, Season, Schedule
+from core.models import League, Season, Schedule, MatchNight
+
+
+class MatchNightSerializer(serializers.ModelSerializer):
+    """Serializer for the MatchNight model."""
+
+    class Meta:
+        model = MatchNight
+        fields = ['id', 'date', 'start_time', 'status']
+        read_only_fields = ['id']
 
 
 class ScheduleSerializer(serializers.ModelSerializer):
     """Serializer for the Schedule model."""
+    matchnights = MatchNightSerializer(many=True, read_only=True)
 
     class Meta:
         model = Schedule
         fields = ['id', 'start_date',
-                  'num_weeks', 'default_start_time']
+                  'num_weeks', 'default_start_time', 'matchnights']
         read_only_fields = ['id']
 
 

@@ -11,6 +11,11 @@ router.register(
     views.ScheduleViewSet,
     basename='schedule'
 )
+router.register(
+    r'leagues/(?P<league_id>\d+)/schedules/(?P<schedule_id>\d+)/matchnights',
+    views.MatchNightViewSet,
+    basename='matchnight'
+)
 
 app_name = 'league'
 
