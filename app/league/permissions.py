@@ -1,6 +1,7 @@
 from rest_framework import permissions
 from core.models import League, Season, Schedule, MatchNight
 
+
 class IsAdminOrLeagueMember(permissions.BasePermission):
     """Custom permission to allow full access to
     league admins and additional admins,
@@ -20,7 +21,11 @@ class IsAdminOrLeagueMember(permissions.BasePermission):
             return self.is_user_in_league(request.user, league)
 
         # Check if the user is an admin or additional admin
-        return request.user == league.admin or request.user in league.additional_admins.all()
+        is_admin_or_additional = (
+            request.user == league.admin or
+            request.user in league.additional_admins.all()
+        )
+        return is_admin_or_additional
 
     def has_object_permission(self, request, view, obj):
         """Check object-level permissions for each specific object."""
@@ -32,11 +37,15 @@ class IsAdminOrLeagueMember(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return self.is_user_in_league(request.user, league)
 
-        # Check if the user is an admin or additional admin
-        return request.user == league.admin or request.user in league.additional_admins.all()
+        is_admin_or_additional = (
+            request.user == league.admin or
+            request.user in league.additional_admins.all()
+        )
+        return is_admin_or_additional
 
     def is_user_in_league(self, user, league):
-        """Check if a user is part of a league either as admin, additional admin, or player."""
+        """Check if a user is part of a league
+        either as admin, additional admin, or player."""
         if user == league.admin or user in league.additional_admins.all():
             return True
 
@@ -59,7 +68,8 @@ class IsAdminOrLeagueMember(permissions.BasePermission):
         return None
 
     def get_league_from_object(self, obj):
-        """Helper function to retrieve league from an object (Schedule, MatchNight, etc.)."""
+        """Helper function to retrieve league
+        from an object (Schedule, MatchNight, etc.)."""
         if isinstance(obj, League):
             return obj
         elif isinstance(obj, Season):

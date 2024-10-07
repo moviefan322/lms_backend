@@ -1,9 +1,15 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
-from core.models import Schedule, TeamSeason, MatchNight, Match
+from core.models import Schedule, MatchNight, Match
 from league.services import ScheduleService
 from django.contrib.auth import get_user_model
-from .test_helpers import create_league, create_season, create_team, create_team_season
+from .test_helpers import (
+    create_league,
+    create_season,
+    create_team,
+    create_team_season
+)
+
 
 class ScheduleServiceTests(TestCase):
     def setUp(self):
@@ -23,18 +29,24 @@ class ScheduleServiceTests(TestCase):
             num_weeks=4
         )
         # Create teams
-        self.team_season1 = create_team_season(create_team(self.league), self.season)
-        self.team_season2 = create_team_season(create_team(self.league), self.season)
-        self.team_season3 = create_team_season(create_team(self.league), self.season)
-        self.team_season4 = create_team_season(create_team(self.league), self.season)
-        self.teams = [self.team_season1, self.team_season2, self.team_season3, self.team_season4]
+        self.team_season1 = create_team_season(
+            create_team(self.league), self.season)
+        self.team_season2 = create_team_season(
+            create_team(self.league), self.season)
+        self.team_season3 = create_team_season(
+            create_team(self.league), self.season)
+        self.team_season4 = create_team_season(
+            create_team(self.league), self.season)
+        self.teams = [self.team_season1, self.team_season2,
+                      self.team_season3, self.team_season4]
 
     def test_balances_home_and_away_games(self):
         """Test that the schedule balances home and away games."""
         service = ScheduleService(self.schedule)
         service.generate_schedule()
 
-        home_away_tracker = {team.id: {'home': 0, 'away': 0} for team in self.teams}
+        home_away_tracker = {team.id: {'home': 0, 'away': 0}
+                             for team in self.teams}
 
         # Tally home and away games
         match_nights = MatchNight.objects.filter(schedule=self.schedule)
@@ -47,7 +59,8 @@ class ScheduleServiceTests(TestCase):
         # Ensure home/away balance per team
         for team_id, counts in home_away_tracker.items():
             self.assertTrue(abs(counts['home'] - counts['away']) <= 1,
-                            f"Team {team_id} has unbalanced home/away: {counts}")
+                            f"Team {team_id} has unbalanced \
+                                home/away: {counts}")
 
     def test_all_teams_have_num_weeks_matches(self):
         """Test that each team has the correct number of scheduled matches."""
@@ -67,4 +80,5 @@ class ScheduleServiceTests(TestCase):
         # Ensure each team has the correct number of matches
         for team_id, count in team_match_count.items():
             self.assertEqual(count, self.schedule.num_weeks,
-                             f"Team {team_id} has {count} matches instead of {self.schedule.num_weeks}")
+                             f"Team {team_id} has {count} matches \
+                                instead of {self.schedule.num_weeks}")

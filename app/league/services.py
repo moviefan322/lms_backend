@@ -33,10 +33,11 @@ class ScheduleService:
         matchup_index = 0
         num_teams = len(self.teams)
 
-        # Ensure we have an even number of teams, which should already be the case
-        assert num_teams % 2 == 0, "This scheduling algorithm assumes an even number of teams."
+        assert num_teams % 2 == (
+            0,
+            "This scheduling algorithm assumes an even number of teams."
+        )
 
-        # Continue generating match nights until the required number of weeks is met
         while current_week < self.num_weeks:
             match_night_date = self.get_next_match_date(current_week)
             match_night, _ = MatchNight.objects.get_or_create(
@@ -56,13 +57,13 @@ class ScheduleService:
 
                 team1, team2 = self.all_matchups[matchup_index]
 
-                # Ensure that neither team is already scheduled for this match night
                 if team1.id in teams_scheduled or team2.id in teams_scheduled:
                     matchup_index += 1
                     continue
 
                 home_team = team1 if (
-                    self.home_away_tracker[team1.id]['home'] <= self.home_away_tracker[team1.id]['away']
+                    self.home_away_tracker[team1.id]['home'] <=
+                    self.home_away_tracker[team1.id]['away']
                 ) else team2
                 away_team = team2 if home_team == team1 else team1
 
@@ -94,7 +95,8 @@ class ScheduleService:
         """Calculate the date of the match night."""
         # Ensure start_date is a datetime object
         if isinstance(self.schedule.start_date, str):
-            start_date = datetime.strptime(self.schedule.start_date, '%Y-%m-%d').date()
+            start_date = datetime.strptime(
+                self.schedule.start_date, '%Y-%m-%d').date()
         else:
             start_date = self.schedule.start_date
 

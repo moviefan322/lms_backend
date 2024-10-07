@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
-from core.models import Schedule, League, Season
+from core.models import Schedule
 from core.tests.test_models import create_league, create_season, create_admin
 from django.contrib.auth import get_user_model
 from datetime import date
@@ -10,7 +10,8 @@ from datetime import date
 
 def schedule_url(league_id, season_id, schedule_id):
     """Return the schedule URL for a given league, season, and schedule."""
-    return reverse('league:schedule-detail', args=[league_id, season_id, schedule_id])
+    return reverse('league:schedule-detail',
+                   args=[league_id, season_id, schedule_id])
 
 
 class UserScheduleApiTests(TestCase):
@@ -56,9 +57,8 @@ class UserScheduleApiTests(TestCase):
         )
 
         payload = {'num_weeks': 6}
-        
-        # Correct the URL to pass the schedule_id
+
         url = schedule_url(self.league.id, self.season.id, schedule.id)
         res = self.client.patch(url, payload)
 
-        self.assertEqual
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)

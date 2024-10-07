@@ -4,15 +4,15 @@ from core.models import League, Season, Schedule
 
 class ScheduleSerializer(serializers.ModelSerializer):
     """Serializer for the Schedule model."""
-    
-    # If you want to display the season ID or details, use this:
-    season = serializers.PrimaryKeyRelatedField(queryset=Schedule.objects.all())
+
+    season = serializers.PrimaryKeyRelatedField(
+        queryset=Schedule.objects.all())
 
     class Meta:
         model = Schedule
-        fields = ['id', 'season', 'start_date', 'num_weeks', 'default_start_time']
+        fields = ['id', 'season', 'start_date',
+                  'num_weeks', 'default_start_time']
         read_only_fields = ['id']
-
 
 
 class SeasonSerializer(serializers.ModelSerializer):

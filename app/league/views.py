@@ -23,7 +23,8 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         serializer.save(season_id=season_id)
 
     def get_object(self):
-        """Retrieve and return a schedule, and ensure league permissions are checked."""
+        """Retrieve and return a schedule,
+        and ensure league permissions are checked."""
         obj = super().get_object()
         league = obj.season.league
         self.check_object_permissions(self.request, league)
