@@ -9,18 +9,21 @@ class IsAdminOrLeagueMember(permissions.BasePermission):
 
     def has_permission(self, request, view):
         """Check permission at the view level."""
-        if request.method == 'POST':
-            return request.user.is_authenticated and request.user.is_admin
-
         league = self.get_league_from_request(view)
 
         if not league:
-            return False
+            return request.user.is_admin
+
+        if request.method == 'POST':
+            return request.user.is_authenticated and (
+                request.user == league.admin or
+                request.user in league.additional_admins.all()
+            )
 
         if request.method in permissions.SAFE_METHODS:
             return self.is_user_in_league(request.user, league)
 
-        # Check if the user is an admin or additional admin
+
         is_admin_or_additional = (
             request.user == league.admin or
             request.user in league.additional_admins.all()
