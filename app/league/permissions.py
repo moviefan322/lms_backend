@@ -23,7 +23,6 @@ class IsAdminOrLeagueMember(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return self.is_user_in_league(request.user, league)
 
-
         is_admin_or_additional = (
             request.user == league.admin or
             request.user in league.additional_admins.all()
