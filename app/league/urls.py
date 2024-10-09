@@ -16,6 +16,11 @@ router.register(
     views.MatchNightViewSet,
     basename='matchnight'
 )
+router.register(
+    r'leagues/(?P<league_id>\d+)/seasons/(?P<season_id>\d+)/matches',
+    views.MatchViewSet,
+    basename='match'
+)
 
 app_name = 'league'
 

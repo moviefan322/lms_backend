@@ -1,5 +1,5 @@
 from rest_framework import permissions
-from core.models import League, Season, Schedule, MatchNight
+from core.models import League, Season, Schedule, MatchNight, Match
 
 
 class IsAdminOrLeagueMember(permissions.BasePermission):
@@ -70,8 +70,7 @@ class IsAdminOrLeagueMember(permissions.BasePermission):
         return None
 
     def get_league_from_object(self, obj):
-        """Helper function to retrieve league
-        from an object (Schedule, MatchNight, etc.)."""
+        """Helper function to retrieve league from an object (Match, Schedule, etc.)."""
         if isinstance(obj, League):
             return obj
         elif isinstance(obj, Season):
@@ -80,4 +79,7 @@ class IsAdminOrLeagueMember(permissions.BasePermission):
             return obj.season.league
         elif isinstance(obj, MatchNight):
             return obj.schedule.season.league
+        elif isinstance(obj, Match):
+            return obj.match_night.schedule.season.league
         return None
+
