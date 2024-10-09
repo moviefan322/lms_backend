@@ -18,7 +18,9 @@ from datetime import date, time
 
 def schedule_url(league_id, season_id, schedule_id):
     """Return the schedule URL for a given league, season, and schedule."""
-    return reverse('league:schedule-detail', args=[league_id, season_id, schedule_id])
+    return reverse('league:schedule-detail', args=[
+        league_id, season_id, schedule_id
+        ])
 
 
 def matches_list_url(league_id, season_id):
@@ -38,13 +40,16 @@ def matchnight_url(league_id, schedule_id):
 
 def matchnight_detail_url(league_id, schedule_id, matchnight_id):
     """Return the match night detail URL for a given league and schedule."""
-    return reverse('league:matchnight-detail', args=[league_id, schedule_id, matchnight_id])
+    return reverse('league:matchnight-detail', args=[
+        league_id, schedule_id, matchnight_id
+        ])
 
 
 def match_detail_url(league_id, season_id, match_id):
     """Return the match URL for a given league, season, and match."""
-    return reverse('league:match-detail', args=[league_id, season_id, match_id])
-
+    return reverse('league:match-detail', args=[
+        league_id, season_id, match_id
+    ])
 
 
 def create_matchnight(**params):
@@ -798,7 +803,8 @@ class AdditionalAdminMatchApiTests(TestCase):
             'away_team': self.team_season2.id
         }
 
-        res = self.client.post(matches_list_url(self.league.id, self.season.id), payload)
+        res = self.client.post(matches_list_url(
+            self.league.id, self.season.id), payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         self.assertIn('home_team', res.data)
@@ -1009,7 +1015,8 @@ class UserMatchApiTests(TestCase):
         self.team3 = create_team(league=self.league)
         self.team_season1 = create_team_season(
             team=self.team1, season=self.season, captain=self.player)
-        self.team_player = create_team_player(team_season=self.team_season1, player=self.player)
+        self.team_player = create_team_player(
+            team_season=self.team_season1, player=self.player)
         self.team_season2 = create_team_season(
             team=self.team2, season=self.season, captain=create_player())
         self.team_season3 = create_team_season(

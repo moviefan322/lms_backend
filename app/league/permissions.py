@@ -70,7 +70,8 @@ class IsAdminOrLeagueMember(permissions.BasePermission):
         return None
 
     def get_league_from_object(self, obj):
-        """Helper function to retrieve league from an object (Match, Schedule, etc.)."""
+        """Helper function to retrieve league
+        from an object (Match, Schedule, etc.)."""
         if isinstance(obj, League):
             return obj
         elif isinstance(obj, Season):
@@ -82,4 +83,3 @@ class IsAdminOrLeagueMember(permissions.BasePermission):
         elif isinstance(obj, Match):
             return obj.match_night.schedule.season.league
         return None
-

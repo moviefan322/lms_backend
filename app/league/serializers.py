@@ -4,15 +4,16 @@ from core.models import League, Season, Schedule, MatchNight, Match
 
 class MatchSerializer(serializers.ModelSerializer):
     """Serializer for the Match model."""
-    match_night = serializers.PrimaryKeyRelatedField(queryset=MatchNight.objects.all())
+    match_night = serializers.PrimaryKeyRelatedField(
+        queryset=MatchNight.objects.all())
     match_time = serializers.TimeField(required=False)
 
     class Meta:
         model = Match
         fields = [
             'id', 'match_night', 'home_team', 'away_team', 'match_time',
-            'home_score', 'away_score', 'status', 'home_race_to', 'away_race_to',
-            'team_snapshot'
+            'home_score', 'away_score', 'status', 'home_race_to',
+            'away_race_to', 'team_snapshot'
         ]
         read_only_fields = ['id']
 
