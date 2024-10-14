@@ -1471,7 +1471,7 @@ class UserGameApiTests(TestCase):
 
         url = game_detail_url(self.league.id, self.season.id, game.id)
         res = self.client.get(url)
-        
+
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data['home_player'], self.team_player1.id)
 

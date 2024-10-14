@@ -22,14 +22,17 @@ class GameViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Return games for the given season."""
         season_id = self.kwargs['season_id']
-        return Game.objects.filter(match__match_night__schedule__season_id=season_id)
+        return Game.objects.filter(
+            match__match_night__schedule__season_id=season_id
+        )
 
     def perform_create(self, serializer):
         """Create a new game for the given season."""
         serializer.save()
 
     def get_object(self):
-        """Retrieve and return a game, ensuring league permissions are checked."""
+        """Retrieve and return a game,
+        ensuring league permissions are checked."""
         obj = super().get_object()
 
         league = obj.match.match_night.schedule.season.league
