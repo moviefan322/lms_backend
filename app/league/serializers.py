@@ -1,5 +1,23 @@
 from rest_framework import serializers
-from core.models import League, Season, Schedule, MatchNight, Match
+from core.models import (
+    League,
+    Season,
+    Schedule,
+    MatchNight,
+    Match,
+    Game,
+)
+
+
+class GameSerializer(serializers.ModelSerializer):
+    """Serializer for the Game model."""
+    match = serializers.PrimaryKeyRelatedField(queryset=Match.objects.all())
+
+    class Meta:
+        model = Game
+        fields = ['id', 'match', 'home_player', 'away_player',
+                  'winner', 'home_score', 'away_score']
+        read_only_fields = ['id']
 
 
 class MatchSerializer(serializers.ModelSerializer):

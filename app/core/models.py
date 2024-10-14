@@ -169,6 +169,7 @@ class TeamPlayer(models.Model):
     handicap = models.IntegerField(default=3)
     wins = models.IntegerField(default=0)
     losses = models.IntegerField(default=0)
+    is_captain = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
     class Meta:

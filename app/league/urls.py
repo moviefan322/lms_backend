@@ -21,21 +21,14 @@ router.register(
     views.MatchViewSet,
     basename='match'
 )
+router.register(
+    r'leagues/(?P<league_id>\d+)/seasons/(?P<season_id>\d+)/games',
+    views.GameViewSet,
+    basename='game'
+)
 
 app_name = 'league'
 
 urlpatterns = [
     path('', include(router.urls)),
-
-    # # MatchNight URLs
-    # path('leagues/<int:league_id>/seasons/<int:season_id>/matchnights/',
-    #      views.MatchNightListCreateView.as_view(), name='matchnight-list'),
-    # path('leagues/<int:league_id>/seasons/<int:season_id>/matchnights/<int:matchnight_id>/',
-    #      views.MatchNightDetailView.as_view(), name='matchnight-detail'),
-
-    # # Matches standalone within season
-    # path('leagues/<int:league_id>/seasons/<int:season_id>/matches/',
-    #      views.MatchListCreateView.as_view(), name='match-list'),
-    # path('leagues/<int:league_id>/seasons/<int:season_id>/matches/<int:match_id>/',
-    #      views.MatchDetailView.as_view(), name='match-detail'),
 ]
