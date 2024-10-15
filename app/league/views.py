@@ -24,7 +24,7 @@ class GameViewSet(viewsets.ModelViewSet):
         season_id = self.kwargs['season_id']
         return Game.objects.filter(
             match__match_night__schedule__season_id=season_id
-        )
+            )
 
     def perform_create(self, serializer):
         """Create a new game for the given season."""

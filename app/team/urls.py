@@ -11,7 +11,7 @@ from rest_framework.routers import DefaultRouter
 from team import views
 
 router = DefaultRouter()
-router.register('team', views.TeamViewSet, basename='team')
+router.register('', views.TeamViewSet, basename='team')
 
 app_name = 'team'
 

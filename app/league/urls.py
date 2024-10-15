@@ -3,26 +3,26 @@ from rest_framework.routers import DefaultRouter
 from league import views
 
 router = DefaultRouter()
-router.register('leagues', views.LeagueViewSet, basename='league')
-router.register(r'leagues/(?P<league_id>\d+)/seasons',
+router.register('', views.LeagueViewSet, basename='league')
+router.register(r'(?P<league_id>\d+)/seasons',
                 views.SeasonViewSet, basename='season')
 router.register(
-    r'leagues/(?P<league_id>\d+)/seasons/(?P<season_id>\d+)/schedule',
+    r'(?P<league_id>\d+)/seasons/(?P<season_id>\d+)/schedule',
     views.ScheduleViewSet,
     basename='schedule'
 )
 router.register(
-    r'leagues/(?P<league_id>\d+)/schedules/(?P<schedule_id>\d+)/matchnights',
+    r'(?P<league_id>\d+)/schedules/(?P<schedule_id>\d+)/matchnights',
     views.MatchNightViewSet,
     basename='matchnight'
 )
 router.register(
-    r'leagues/(?P<league_id>\d+)/seasons/(?P<season_id>\d+)/matches',
+    r'(?P<league_id>\d+)/seasons/(?P<season_id>\d+)/matches',
     views.MatchViewSet,
     basename='match'
 )
 router.register(
-    r'leagues/(?P<league_id>\d+)/seasons/(?P<season_id>\d+)/games',
+    r'(?P<league_id>\d+)/seasons/(?P<season_id>\d+)/games',
     views.GameViewSet,
     basename='game'
 )

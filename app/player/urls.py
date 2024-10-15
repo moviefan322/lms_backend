@@ -11,7 +11,7 @@ from rest_framework.routers import DefaultRouter
 from player import views
 
 router = DefaultRouter()
-router.register('player', views.PlayerViewSet, basename='player')
+router.register('', views.PlayerViewSet, basename='player')
 
 app_name = 'player'
 
