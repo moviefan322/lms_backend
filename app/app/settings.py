@@ -21,12 +21,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-e)1yyp0ck2cpvanhs)2e_!2x_*z)%ib^ju$=#3ahb)8u=_&el!'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'changeme')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = bool(int(os.environ.get('DEBUG', 0)))
 
 ALLOWED_HOSTS = []
+ALLOWED_HOSTS.extend(
+    filter(
+        None,
+        os.environ.get('ALLOWED_HOSTS', '').split(','),
+    )
+)
 
 
 # Application definition
@@ -50,6 +56,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -79,6 +86,29 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'app.wsgi.application'
 
+# CORS
+
+if os.environ.get('DEV') == 'true':
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:3000",
+    ]
+
+    CORS_ALLOW_CREDENTIALS = True
+
+    CORS_ALLOW_HEADERS = [
+        'authorization',
+        'content-type',
+        'x-csrftoken',
+    ]
+
+    CORS_ALLOW_METHODS = [
+        'GET',
+        'POST',
+        'PUT',
+        'PATCH',
+        'DELETE',
+        'OPTIONS',
+    ]
 
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
