@@ -114,7 +114,7 @@ class PublicLeagueApiTests(TestCase):
         """Test retrieving leagues without authentication should fail."""
         res = self.client.get(LEAGUES_URL)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_get_league_detail_unauthorized(self):
         """Test getting league detail without authentication should fail."""
@@ -123,7 +123,7 @@ class PublicLeagueApiTests(TestCase):
         url = detail_url(league.id)
         res = self.client.get(url)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_create_league_unauthorized(self):
         """Test creating a league without authentication should fail."""
@@ -134,7 +134,7 @@ class PublicLeagueApiTests(TestCase):
 
         res = self.client.post(LEAGUES_URL, payload)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class AdminLeagueApiTests(TestCase):
@@ -153,6 +153,18 @@ class AdminLeagueApiTests(TestCase):
             is_admin=True,
         )
         self.client.force_authenticate(self.admin_user)
+
+    def test_retrieve_leagues(self):
+        """Test retrieving leagues."""
+        create_league(admin_user=self.admin_user)
+
+        res = self.client.get(LEAGUES_URL)
+
+        leagues = League.objects.all().order_by('id')
+        serializer = LeagueSerializer(leagues, many=True)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, serializer.data)
 
     def test_create_league_successful(self):
         """Test that an admin user can create a league."""

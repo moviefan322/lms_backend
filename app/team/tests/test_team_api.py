@@ -94,7 +94,7 @@ class PublicTeamApiTests(TestCase):
         """Test that authentication is required"""
         res = self.client.get(TEAMS_URL)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_get_team_detail_unauthorized(self):
         """Test that authentication is required to get team detail"""
@@ -103,7 +103,7 @@ class PublicTeamApiTests(TestCase):
         url = detail_url(team.id)
         res = self.client.get(url)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_create_team_unauthorized(self):
         """Test that authentication is required to create a team"""
@@ -116,7 +116,7 @@ class PublicTeamApiTests(TestCase):
         }
         res = self.client.post(TEAMS_URL, payload)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class AdminTeamApiTests(TestCase):

@@ -21,20 +21,18 @@ class IsAdminOrLeagueMember(permissions.BasePermission):
         if not league:
             return request.user.is_admin
 
-        if request.method == 'POST':
-            return request.user.is_authenticated and (
-                request.user == league.admin or
-                request.user in league.additional_admins.all()
-            )
-
-        if request.method in permissions.SAFE_METHODS:
-            return self.is_user_in_league(request.user, league)
-
         is_admin_or_additional = (
             request.user == league.admin or
             request.user in league.additional_admins.all()
         )
-        return is_admin_or_additional
+
+        if is_admin_or_additional:
+            return True
+
+        if request.method in permissions.SAFE_METHODS:
+            return self.is_user_in_league(request.user, league)
+
+        return False
 
     def has_object_permission(self, request, view, obj):
         """Check object-level permissions for each specific object."""

@@ -100,7 +100,7 @@ class PublicPlayerScoreApiTests(TestCase):
         """Test that authentication is required"""
         res = self.client.get(PLAYER_URL)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_create_player_unauthorized(self):
         """Test that admin auth is required for creating a player"""
@@ -115,7 +115,7 @@ class PublicPlayerScoreApiTests(TestCase):
 
         res = self.client.post(PLAYER_URL, payload)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_retrieve_players_unauthorized(self):
         """Test retrieving players"""
@@ -125,7 +125,7 @@ class PublicPlayerScoreApiTests(TestCase):
 
         res = self.client.get(PLAYER_URL)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_get_player_detail_unauthorized(self):
         """Test getting player detail"""
@@ -135,7 +135,7 @@ class PublicPlayerScoreApiTests(TestCase):
         url = reverse('player:player-detail', args=[player.id])
         res = self.client.get(url)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class AdminPlayerApiTests(TestCase):

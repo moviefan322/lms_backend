@@ -24,7 +24,7 @@ class GameViewSet(viewsets.ModelViewSet):
         season_id = self.kwargs['season_id']
         return Game.objects.filter(
             match__match_night__schedule__season_id=season_id
-            )
+        )
 
     def perform_create(self, serializer):
         """Create a new game for the given season."""
@@ -152,19 +152,21 @@ class LeagueViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminOrLeagueMember]
 
     def get_queryset(self):
-        """Return leagues the current authenticated user is associated with."""
         user = self.request.user
 
-        leagues = League.objects.filter(
-            models.Q(admin=user) |
-            models.Q(additional_admins=user)
-        )
+        if user.is_admin:
+            admin_leagues = League.objects.filter(admin=user)
+            additional_admin_leagues = League.objects.filter(
+                additional_admins=user)
 
-        leagues_as_player = League.objects.filter(
-            seasons__teamseason__players__user=user
-        )
+            leagues = admin_leagues | additional_admin_leagues
+            return leagues.distinct()
 
-        return (leagues | leagues_as_player).distinct()
+        player_leagues = League.objects.filter(
+            seasons__teamseason__players=user.player_profile
+        ).distinct()
+
+        return player_leagues
 
     def perform_authentication(self, request):
         super().perform_authentication(request)

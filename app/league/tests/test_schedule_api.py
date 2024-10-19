@@ -121,7 +121,7 @@ class PublicMatchNightApiTests(TestCase):
         res = self.client.post(matchnight_url(
             self.league.id, self.schedule.id), payload)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_user_cannot_view_matchnight(self):
         """Test that an unauthenticated user cannot view a match night."""
@@ -135,7 +135,7 @@ class PublicMatchNightApiTests(TestCase):
             self.league.id, self.schedule.id, matchnight.id)
         res = self.client.get(url)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_user_cannot_modify_matchnight(self):
         """Test that an unauthenticated user cannot modify a match night."""
@@ -151,7 +151,7 @@ class PublicMatchNightApiTests(TestCase):
             self.league.id, self.schedule.id, matchnight.id)
         res = self.client.patch(url, payload)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_user_cannot_delete_matchnight(self):
         """Test that an unauthenticated user cannot delete a match night."""
@@ -165,7 +165,7 @@ class PublicMatchNightApiTests(TestCase):
             self.league.id, self.schedule.id, matchnight.id)
         res = self.client.delete(url)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class PublicMatchApiTests(TestCase):
@@ -207,7 +207,7 @@ class PublicMatchApiTests(TestCase):
         res = self.client.post(matches_list_url(
             self.league.id, self.season.id), payload)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_user_cannot_view_match(self):
         """Test that an unauthenticated user cannot view a match."""
@@ -220,7 +220,7 @@ class PublicMatchApiTests(TestCase):
         url = match_detail_url(self.league.id, self.season.id, match.id)
         res = self.client.get(url)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_user_cannot_modify_match(self):
         """Test that an unauthenticated user cannot modify a match."""
@@ -235,7 +235,7 @@ class PublicMatchApiTests(TestCase):
         url = match_detail_url(self.league.id, self.season.id, match.id)
         res = self.client.patch(url, payload)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_user_cannot_delete_match(self):
         """Test that an unauthenticated user cannot delete a match."""
@@ -248,7 +248,7 @@ class PublicMatchApiTests(TestCase):
         url = match_detail_url(self.league.id, self.season.id, match.id)
         res = self.client.delete(url)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class PublicScheduleApiTests(TestCase):
@@ -272,7 +272,7 @@ class PublicScheduleApiTests(TestCase):
         url = schedule_list_url(self.league.id, self.season.id)
         res = self.client.post(url, payload)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_user_cannot_view_schedule(self):
         """Test that an unauthenticated user cannot view a schedule."""
@@ -286,7 +286,7 @@ class PublicScheduleApiTests(TestCase):
         url = schedule_url(self.league.id, self.season.id, schedule.id)
         res = self.client.get(url)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_user_cannot_modify_schedule(self):
         """Test that an unauthenticated user cannot modify a schedule."""
@@ -302,7 +302,7 @@ class PublicScheduleApiTests(TestCase):
         url = schedule_url(self.league.id, self.season.id, schedule.id)
         res = self.client.patch(url, payload)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_user_cannot_delete_schedule(self):
         """Test that an unauthenticated user cannot delete a schedule."""
@@ -316,7 +316,7 @@ class PublicScheduleApiTests(TestCase):
         url = schedule_url(self.league.id, self.season.id, schedule.id)
         res = self.client.delete(url)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class PublicGameApiTests(TestCase):
@@ -374,14 +374,14 @@ class PublicGameApiTests(TestCase):
         url = games_list_url(self.league.id, self.season.id)
         res = self.client.post(url, payload)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_user_cannot_view_game(self):
         """Test that an unauthenticated user cannot view a game."""
         url = game_detail_url(self.league.id, self.season.id, self.game.id)
         res = self.client.get(url)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_user_cannot_modify_game(self):
         """Test that an unauthenticated user cannot modify a game."""
@@ -390,14 +390,14 @@ class PublicGameApiTests(TestCase):
         url = game_detail_url(self.league.id, self.season.id, self.game.id)
         res = self.client.patch(url, payload)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_user_cannot_delete_game(self):
         """Test that an unauthenticated user cannot delete a game."""
         url = game_detail_url(self.league.id, self.season.id, self.game.id)
         res = self.client.delete(url)
 
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class AdminScheduleApiTests(TestCase):
