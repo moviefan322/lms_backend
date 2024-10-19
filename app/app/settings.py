@@ -90,6 +90,7 @@ WSGI_APPLICATION = 'app.wsgi.application'
 
 if os.environ.get('DEV') == 'true':
     CORS_ALLOWED_ORIGINS = [
+        "http://localhost:8000",
         "http://localhost:5173",
     ]
 
