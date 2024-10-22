@@ -49,6 +49,7 @@ class MatchNightSerializer(serializers.ModelSerializer):
 class ScheduleSerializer(serializers.ModelSerializer):
     """Serializer for the Schedule model."""
     matchnights = MatchNightSerializer(many=True, read_only=True)
+    default_start_time = serializers.TimeField(format='%H:%M:%S', required=False)
 
     class Meta:
         model = Schedule
@@ -59,11 +60,19 @@ class ScheduleSerializer(serializers.ModelSerializer):
 
 class SeasonSerializer(serializers.ModelSerializer):
     """Serializer for the Season model."""
+    schedule = serializers.SerializerMethodField()
 
     class Meta:
         model = Season
-        fields = ['id', 'name', 'year', 'is_active', 'league']
+        fields = ['id', 'name', 'year', 'is_active', 'league', 'schedule']
         read_only_fields = ['id', 'league']
+
+    def get_schedule(self, obj):
+        """Return the associated schedule or None if it doesn't exist."""
+        schedule = getattr(obj, 'schedule', None)
+        if schedule:
+            return ScheduleSerializer(schedule).data
+        return None
 
 
 class LeagueSerializer(serializers.ModelSerializer):
