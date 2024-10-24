@@ -16,7 +16,6 @@ from core.models import (
     TeamPlayer,
     TeamSeason,
 )
-from league.serializers import TeamSeasonSerializer
 
 
 def team_seasons_url(league_id, season_id, team_season_id):
@@ -143,7 +142,8 @@ class AdminTeamSeasonApiTests(TestCase):
         self.new_team = create_team(league=self.league)
         self.player = create_player()
         self.newPlayer = create_player()
-        self.team_season = create_team_season(self.team, self.season, captain=self.player)
+        self.team_season = create_team_season(
+            self.team, self.season, captain=self.player)
 
     def test_retrieve_team_seasons(self):
         """Test retrieving a list of team seasons"""
@@ -222,7 +222,8 @@ class AdminTeamSeasonApiTests(TestCase):
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(TeamSeason.objects.filter(id=self.team_season.id).exists())
+        self.assertFalse(TeamSeason.objects.filter(
+            id=self.team_season.id).exists())
 
     def test_invalid_team_season(self):
         """Test creating a team season with invalid payload"""
@@ -251,7 +252,7 @@ class AdminTeamSeasonApiTests(TestCase):
         res = self.client.put(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-    
+
     def test_invalid_team_season_partial_update(self):
         """Test updating a team season with invalid payload"""
         payload = {
@@ -278,7 +279,8 @@ class AdminTeamSeasonApiTests(TestCase):
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(TeamSeason.objects.filter(id=self.team_season.id).exists())
+        self.assertFalse(TeamSeason.objects.filter(
+            id=self.team_season.id).exists())
 
 
 class AdditionalAdminTeamSeasonApiTests(TestCase):
@@ -304,7 +306,8 @@ class AdditionalAdminTeamSeasonApiTests(TestCase):
         self.new_team = create_team(league=self.league)
         self.player = create_player()
         self.newPlayer = create_player()
-        self.team_season = create_team_season(self.team, self.season, captain=self.player)
+        self.team_season = create_team_season(
+            self.team, self.season, captain=self.player)
 
     def test_retrieve_team_seasons(self):
         """Test retrieving a list of team seasons"""
@@ -384,7 +387,8 @@ class AdditionalAdminTeamSeasonApiTests(TestCase):
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(TeamSeason.objects.filter(id=self.team_season.id).exists())
+        self.assertFalse(TeamSeason.objects.filter(
+            id=self.team_season.id).exists())
 
     def test_invalid_team_season(self):
         """Test creating a team season with invalid payload"""
@@ -440,7 +444,8 @@ class AdditionalAdminTeamSeasonApiTests(TestCase):
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(TeamSeason.objects.filter(id=self.team_season.id).exists())
+        self.assertFalse(TeamSeason.objects.filter(
+            id=self.team_season.id).exists())
 
 
 class PlayerTeamSeasonApiTests(TestCase):
@@ -467,7 +472,8 @@ class PlayerTeamSeasonApiTests(TestCase):
         self.player = create_player()
         self.player_user.player_profile = self.player
         self.newPlayer = create_player()
-        self.team_season = create_team_season(self.team, self.season, captain=self.player)
+        self.team_season = create_team_season(
+            self.team, self.season, captain=self.player)
         self.team_player = create_team_player(self.team_season, self.player)
 
     def test_retrieve_team_seasons(self):
@@ -510,5 +516,5 @@ class PlayerTeamSeasonApiTests(TestCase):
             self.team_season.id
         )
         res = self.client.patch(url, payload)
-        
+
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
