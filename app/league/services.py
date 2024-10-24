@@ -9,14 +9,17 @@ class ScheduleService:
         self.teams = list(TeamSeason.objects.filter(season=schedule.season))
         random.shuffle(self.teams)
         self.num_weeks = schedule.num_weeks
-        self.home_away_tracker = {team.id: {'home': 0, 'away': 0} for team in self.teams}
+        self.home_away_tracker = {
+            team.id: {'home': 0, 'away': 0} for team in self.teams}
 
     def generate_schedule(self):
         """Generate matchups using a rotating round-robin schedule."""
         current_week = 0
         num_teams = len(self.teams)
 
-        assert num_teams % 2 == 0, "Number of teams must be even for scheduling."
+        assert num_teams % 2 == (
+            0, "Number of teams must be even for scheduling."
+        )
 
         # Split the teams into two halves
         half = num_teams // 2
@@ -48,15 +51,18 @@ class ScheduleService:
                 self.home_away_tracker[away_team.id]['away'] += 1
 
             # Rotate the lists for the next week's matchups
-            list1.insert(1, list2.pop(0))  # Move first team from list2 to list1
-            list2.append(list1.pop(-1))    # Move last team from list1 to the end of list2
+            # Move first team from list2 to list1
+            list1.insert(1, list2.pop(0))
+            # Move last team from list1 to the end of list2
+            list2.append(list1.pop(-1))
 
             current_week += 1
 
     def get_next_match_date(self, week_offset):
         """Calculate the date of the match night."""
         if isinstance(self.schedule.start_date, str):
-            start_date = datetime.strptime(self.schedule.start_date, '%Y-%m-%d').date()
+            start_date = datetime.strptime(
+                self.schedule.start_date, '%Y-%m-%d').date()
         else:
             start_date = self.schedule.start_date
         return start_date + timedelta(weeks=week_offset)

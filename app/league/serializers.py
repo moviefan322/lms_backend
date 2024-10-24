@@ -49,7 +49,8 @@ class MatchNightSerializer(serializers.ModelSerializer):
 class ScheduleSerializer(serializers.ModelSerializer):
     """Serializer for the Schedule model."""
     matchnights = MatchNightSerializer(many=True, read_only=True)
-    default_start_time = serializers.TimeField(format='%H:%M:%S', required=False)
+    default_start_time = serializers.TimeField(
+        format='%H:%M:%S', required=False)
 
     class Meta:
         model = Schedule

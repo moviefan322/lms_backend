@@ -180,7 +180,8 @@ class TeamPlayer(models.Model):
 
 
 class Schedule(models.Model):
-    season = models.ForeignKey(Season, on_delete=models.CASCADE)
+    season = models.OneToOneField(
+        Season, on_delete=models.CASCADE, related_name='schedule')
     start_date = models.DateField()
     num_weeks = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)

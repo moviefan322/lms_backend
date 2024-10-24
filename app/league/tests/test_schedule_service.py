@@ -39,7 +39,8 @@ class ScheduleServiceTests(TestCase):
         service = ScheduleService(self.schedule)
         service.generate_schedule()
 
-        home_away_tracker = {team.id: {'home': 0, 'away': 0} for team in self.teams}
+        home_away_tracker = {team.id: {'home': 0, 'away': 0}
+                             for team in self.teams}
 
         # Tally home and away games
         match_nights = MatchNight.objects.filter(schedule=self.schedule)
@@ -52,7 +53,7 @@ class ScheduleServiceTests(TestCase):
         # Ensure home/away balance per team
         for team_id, counts in home_away_tracker.items():
             self.assertTrue(abs(counts['home'] - counts['away']) <= 2,
-                            f"Team {team_id} has unbalanced home/away: {counts}")
+                            f"Team {team_id} has unbalanced h/a: {counts}")
 
     def test_all_teams_have_num_weeks_matches(self):
         """Test that each team has the correct number of scheduled matches."""
@@ -71,5 +72,7 @@ class ScheduleServiceTests(TestCase):
 
         # Ensure each team has the correct number of matches
         for team_id, count in team_match_count.items():
-            self.assertEqual(count, self.schedule.num_weeks,
-                             f"Team {team_id} has {count} matches instead of {self.schedule.num_weeks}")
+            self.assertEqual(
+                count, self.schedule.num_weeks,
+                f"Team {team_id} has {count} matches \
+                instead of {self.schedule.num_weeks}")

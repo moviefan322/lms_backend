@@ -44,7 +44,7 @@ class TeamSeasonViewSet(viewsets.ModelViewSet):
     """View for managing TeamSeason API requests."""
     queryset = TeamSeason.objects.all()
     serializer_class = serializers.TeamSeasonSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
     def get_queryset(self):
         """Filter team season by team or season if provided."""
@@ -59,3 +59,9 @@ class TeamSeasonViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(season_id=season_id)
 
         return queryset
+
+    def perform_create(self, serializer):
+        """Create a new team season instance."""
+        team_id = self.request.data.get('team_id')
+        season_id = self.request.data.get('season_id')
+        serializer.save(team_id=team_id, season_id=season_id)
