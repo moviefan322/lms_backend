@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from league import views
+from team.views import TeamViewSet
 
 router = DefaultRouter()
 router.register('', views.LeagueViewSet, basename='league')
@@ -30,6 +31,8 @@ router.register(
     views.GameViewSet,
     basename='game'
 )
+router.register(r'(?P<league_id>\d+)/teams',
+                TeamViewSet, basename='team')
 
 app_name = 'league'
 

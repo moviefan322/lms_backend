@@ -12,28 +12,36 @@ class TeamViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
     def get_queryset(self):
-        """Return teams for admin or a player."""
+        """Return teams for admin or a player, filtered by league."""
         user = self.request.user
+        league_id = self.kwargs['league_id']  # Get league_id from the URL
+        league = League.objects.filter(id=league_id).first()
 
         if user.is_admin:
-            return Team.objects.all().order_by('name')
+            # Admin can access all teams in the league
+            return Team.objects.filter(league=league).order_by('name')
 
         if not user.is_active or not user.player_profile:
+            # No access if the user is inactive or has no profile
             return Team.objects.none()
 
+        # Find leagues where the user is a player
         player_leagues = League.objects.filter(
             seasons__teamseason__team_players__player=user.player_profile
         ).distinct()
 
+        # Return teams only from the player's leagues
         teams = Team.objects.filter(
-            league__in=player_leagues
+            league__in=player_leagues, league=league
         ).order_by('name').distinct()
 
         return teams
 
     def perform_create(self, serializer):
-        """Create a new team."""
-        serializer.save()
+        """Create a new team in the given league."""
+        league_id = self.kwargs['league_id']  # Get league_id from the URL
+        league = League.objects.get(id=league_id)
+        serializer.save(league=league)  # Save team under the correct league
 
     def perform_update(self, serializer):
         """Update a team if the user is authorized."""

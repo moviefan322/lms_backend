@@ -20,12 +20,15 @@ from core.models import (
 from team.serializers import TeamSerializer
 from core.tests.test_models import random_string, create_admin
 
-TEAMS_URL = reverse('team:team-list')
 
-
-def detail_url(team_id):
+def detail_url(league_id, team_id):
     """Return team detail URL"""
-    return reverse('team:team-detail', args=[team_id])
+    return reverse('league:team-detail', args=[league_id, team_id])
+
+
+def teams_list_url(league_id):
+    """Return teams list URL"""
+    return reverse('league:team-list', args=[league_id])
 
 
 def create_league(admin_user, **params):
@@ -101,10 +104,11 @@ class PublicTeamApiTests(TestCase):
 
     def setUp(self):
         self.client = APIClient()
+        self.league = create_league(create_admin())
 
     def test_auth_required(self):
         """Test that authentication is required"""
-        res = self.client.get(TEAMS_URL)
+        res = self.client.get(teams_list_url(self.league.id))
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -112,7 +116,7 @@ class PublicTeamApiTests(TestCase):
         """Test that authentication is required to get team detail"""
         league = create_league(create_admin())
         team = create_team(league)
-        url = detail_url(team.id)
+        url = detail_url(league.id, team.id)
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -126,7 +130,7 @@ class PublicTeamApiTests(TestCase):
             'year': 2021,
             'is_active': True,
         }
-        res = self.client.post(TEAMS_URL, payload)
+        res = self.client.post(teams_list_url(self.league.id), payload)
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -146,6 +150,7 @@ class AdminTeamApiTests(TestCase):
             'test123',
             is_admin=True,
         )
+        self.league = create_league(self.admin_user)
         self.client.force_authenticate(self.admin_user)
 
     def test_create_team_successful(self):
@@ -156,7 +161,7 @@ class AdminTeamApiTests(TestCase):
             'league': league.id,
             'captain': create_player().id,
         }
-        res = self.client.post(TEAMS_URL, payload)
+        res = self.client.post(teams_list_url(league.id), payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         team = Team.objects.get(id=res.data['id'])
@@ -169,7 +174,7 @@ class AdminTeamApiTests(TestCase):
         create_team(league)
         create_team(league)
 
-        res = self.client.get(TEAMS_URL)
+        res = self.client.get(teams_list_url(league.id))
 
         teams = Team.objects.all().order_by('name')
         serializer = TeamSerializer(teams, many=True)
@@ -188,7 +193,7 @@ class AdminTeamApiTests(TestCase):
 
         create_team_player(team_season, player)
 
-        url = detail_url(team.id)
+        url = detail_url(league.id, team.id)
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -205,7 +210,7 @@ class AdminTeamApiTests(TestCase):
             'league': league.id,
             'captain': '',
         }
-        res = self.client.post(TEAMS_URL, payload)
+        res = self.client.post(teams_list_url(self.league.id), payload)
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(res.data['name'][0].code, 'blank')
@@ -214,7 +219,7 @@ class AdminTeamApiTests(TestCase):
         """Test retrieving a team detail as an authenticated user."""
         league = create_league(self.admin_user)
         team = create_team(league)
-        url = detail_url(team.id)
+        url = detail_url(league.id, team.id)
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -231,7 +236,7 @@ class AdminTeamApiTests(TestCase):
             'name': random_string(),
             'league': league.id,
         }
-        url = detail_url(team.id)
+        url = detail_url(league.id, team.id)
         res = self.client.put(url, payload)
 
         team.refresh_from_db()
@@ -249,7 +254,7 @@ class AdminTeamApiTests(TestCase):
         payload = {
             'name': random_string(),
         }
-        url = detail_url(team.id)
+        url = detail_url(league.id, team.id)
         res = self.client.patch(url, payload)
 
         team.refresh_from_db()
@@ -263,7 +268,7 @@ class AdminTeamApiTests(TestCase):
         """Test deleting a team."""
         league = create_league(self.admin_user)
         team = create_team(league)
-        url = detail_url(team.id)
+        url = detail_url(league.id, team.id)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
@@ -277,7 +282,7 @@ class AdminTeamApiTests(TestCase):
             'league': league.id,
             'captain': create_player().id,
         }
-        res = self.client.post(TEAMS_URL, payload)
+        res = self.client.post(teams_list_url(league.id), payload)
 
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -290,7 +295,7 @@ class AdminTeamApiTests(TestCase):
             'league': league.id,
             'captain': create_player().id,
         }
-        url = detail_url(team.id)
+        url = detail_url(league.id, team.id)
         res = self.client.put(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
@@ -299,7 +304,7 @@ class AdminTeamApiTests(TestCase):
         """Test that admin cannot delete a team for another league"""
         league = create_league(self.other_admin_user)
         team = create_team(league)
-        url = detail_url(team.id)
+        url = detail_url(league.id, team.id)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
@@ -347,7 +352,7 @@ class AdditionAdminLeagueApiTests(TestCase):
             'league': league.id,
         }
 
-        res = self.client.post(TEAMS_URL, payload)
+        res = self.client.post(teams_list_url(league.id), payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         team = Team.objects.get(id=res.data['id'])
@@ -366,7 +371,7 @@ class AdditionAdminLeagueApiTests(TestCase):
             'name': random_string(),
             'league': league.id,
         }
-        url = detail_url(team.id)
+        url = detail_url(league.id, team.id)
         res = self.client.put(url, payload)
 
         team.refresh_from_db()
@@ -385,7 +390,7 @@ class AdditionAdminLeagueApiTests(TestCase):
 
         self.client.force_authenticate(self.additional_admin_user)
 
-        url = detail_url(team.id)
+        url = detail_url(league.id, team.id)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
@@ -403,7 +408,7 @@ class AdditionAdminLeagueApiTests(TestCase):
             'captain': create_player().id,
         }
 
-        res = self.client.post(TEAMS_URL, payload)
+        res = self.client.post(teams_list_url(league.id), payload)
 
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -417,7 +422,7 @@ class AdditionAdminLeagueApiTests(TestCase):
         }
 
         self.client.force_authenticate(self.other_user)
-        url = detail_url(self.team.id)
+        url = detail_url(league.id, self.team.id)
         res = self.client.put(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
@@ -429,7 +434,7 @@ class AdditionAdminLeagueApiTests(TestCase):
 
         self.client.force_authenticate(self.other_user)
 
-        url = detail_url(self.team.id)
+        url = detail_url(league.id, self.team.id)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
@@ -452,7 +457,7 @@ class AdditionAdminLeagueApiTests(TestCase):
 
         self.client.force_authenticate(self.other_user)
 
-        res = self.client.get(TEAMS_URL)
+        res = self.client.get(teams_list_url(league.id))
 
         teams = Team.objects.filter(league=league).order_by('name')
         serializer = TeamSerializer(teams, many=True)
@@ -474,7 +479,7 @@ class AdditionAdminLeagueApiTests(TestCase):
 
         self.client.force_authenticate(self.other_user)
 
-        url = detail_url(team.id)
+        url = detail_url(league.id, team.id)
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
