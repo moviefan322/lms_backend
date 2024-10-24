@@ -5,7 +5,8 @@ from core.models import (
     Schedule,
     MatchNight,
     Match,
-    Game
+    Game,
+    TeamSeason,
 )
 
 
@@ -89,4 +90,6 @@ class IsAdminOrLeagueMember(permissions.BasePermission):
             return obj.match_night.schedule.season.league
         elif isinstance(obj, Game):
             return obj.match.match_night.schedule.season.league
+        elif isinstance(obj, TeamSeason):
+            return obj.season.league
         return None

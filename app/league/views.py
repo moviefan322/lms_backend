@@ -203,12 +203,10 @@ class TeamSeasonViewSet(viewsets.ModelViewSet):
 
     def post(self, request, *args, **kwargs):
         """Handle POST requests explicitly."""
-        print("POST request received")
         return self.create(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
         """Handle POST requests for TeamSeason creation."""
-        print("Creating team season...")
         return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
