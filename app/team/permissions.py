@@ -1,5 +1,5 @@
 from rest_framework import permissions
-from core.models import League
+from core.models import League, Team, Season
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):
@@ -42,3 +42,37 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         return request.user == league.admin or (
             request.user in league.additional_admins.all()
         )
+
+
+class IsTeamSeasonAdminOrReadOnly(permissions.BasePermission):
+    """Custom permission to allow read-only access for authenticated users,
+    and full access to league admins and additional admins."""
+
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return request.user.is_authenticated
+
+        if request.method == 'POST':
+            team_id = request.data.get('team')
+            season_id = request.data.get('season')
+
+            if not team_id or not season_id:
+                return False
+
+            try:
+                team = Team.objects.get(pk=team_id)
+                season = Season.objects.get(pk=season_id)
+                league = season.league
+            except (Team.DoesNotExist, Season.DoesNotExist):
+                return False
+
+            return (
+                request.user.is_authenticated and
+                request.user.is_active and
+                (
+                    request.user == league.admin or
+                    request.user in league.additional_admins.all()
+                )
+            )
+
+        return request.user.is_authenticated and request.user.is_active

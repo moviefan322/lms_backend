@@ -72,6 +72,18 @@ def create_team(league, **params):
     return Team.objects.create(**defaults)
 
 
+def create_team_season(team, season, **params):
+    """Create and return a sample TeamSeason"""
+    defaults = {
+        'team': team,
+        'season': season,
+        'captain': create_player(),
+    }
+    defaults.update(params)
+
+    return TeamSeason.objects.create(**defaults)
+
+
 def create_team_player(team_season, player, **params):
     """Create and return a sample TeamPlayer"""
     defaults = {
@@ -470,5 +482,3 @@ class AdditionAdminLeagueApiTests(TestCase):
         self.assertEqual(res.data, serializer.data)
         self.assertEqual(res.data['name'], team.name)
         self.assertEqual(res.data['league'], team.league.id)
-        self.assertEqual(res.data['team_season']
-                         ['captain']['id'], team_season.captain.id)

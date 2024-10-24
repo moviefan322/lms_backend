@@ -1,5 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 from django.db import models
 
 from core.models import (
@@ -8,7 +9,10 @@ from core.models import (
     Schedule,
     MatchNight,
     Match,
-    Game
+    Game,
+    TeamSeason,
+    Team,
+    Player
 )
 from league import serializers
 from .permissions import IsAdminOrLeagueMember
@@ -174,3 +178,60 @@ class LeagueViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Create a new league."""
         serializer.save(admin=self.request.user)
+
+
+class TeamSeasonViewSet(viewsets.ModelViewSet):
+    """View for managing TeamSeason API requests."""
+    queryset = TeamSeason.objects.all()
+    serializer_class = serializers.TeamSeasonSerializer
+    http_method_names = ['get', 'post', 'put', 'patch', 'delete']
+    permission_classes = [IsAuthenticated, IsAdminOrLeagueMember]
+
+    def get_queryset(self):
+        """Filter team season by team or season if provided."""
+        queryset = self.queryset
+
+        team_id = self.request.query_params.get('team_id')
+        if team_id:
+            queryset = queryset.filter(team_id=team_id)
+
+        season_id = self.request.query_params.get('season_id')
+        if season_id:
+            queryset = queryset.filter(season_id=season_id)
+
+        return queryset
+
+    def post(self, request, *args, **kwargs):
+        """Handle POST requests explicitly."""
+        print("POST request received")
+        return self.create(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        """Handle POST requests for TeamSeason creation."""
+        print("Creating team season...")
+        return super().create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        """Create a new team season instance."""
+        team_id = self.request.data.get('team')
+        season_id = self.request.data.get('season')
+
+        try:
+            team = Team.objects.get(id=team_id)
+            season = Season.objects.get(id=season_id)
+        except (Team.DoesNotExist, Season.DoesNotExist) as e:
+            raise ValidationError(f"Invalid team or season: {str(e)}")
+
+        # Default values for the new TeamSeason
+        serializer.save(team=team, season=season, name=team.name,
+                        wins=0, losses=0, games_won=0, games_lost=0)
+
+    def perform_update(self, serializer):
+        """Update a team season instance."""
+        captain_id = self.request.data.get('captain')
+        try:
+            captain = Player.objects.get(id=captain_id)
+            serializer.save(captain=captain)
+        except Player.DoesNotExist:
+            raise ValidationError(
+                f"Invalid captain: Player with ID {captain_id} does not exist.")

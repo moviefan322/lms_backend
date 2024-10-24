@@ -106,6 +106,17 @@ class Season(models.Model):
         return f"{self.name} ({self.year})"
 
 
+    @property
+    def admin(self):
+        """Inherit admin from the league."""
+        return self.league.admin
+
+    @property
+    def additional_admins(self):
+        """Inherit additional admins from the league."""
+        return self.league.additional_admins.all()
+
+
 class Team(models.Model):
     """Team object."""
     name = models.CharField(max_length=255)
@@ -121,9 +132,9 @@ class Team(models.Model):
 
 class TeamSeason(models.Model):
     """Intermediary model for tracking team stats in a specific season."""
-    team = models.ForeignKey(Team, on_delete=models.CASCADE)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, null=False)
     name = models.CharField(max_length=255)
-    season = models.ForeignKey(Season, on_delete=models.CASCADE)
+    season = models.ForeignKey(Season, on_delete=models.CASCADE, null=False)
     captain = models.ForeignKey(
         'Player',
         on_delete=models.CASCADE,

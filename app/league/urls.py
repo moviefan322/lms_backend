@@ -12,6 +12,10 @@ router.register(
     basename='schedule'
 )
 router.register(
+    r'(?P<league_id>\d+)/seasons/(?P<season_id>\d+)/teamseasons',
+    views.TeamSeasonViewSet,
+    basename='teamseason')
+router.register(
     r'(?P<league_id>\d+)/schedules/(?P<schedule_id>\d+)/matchnights',
     views.MatchNightViewSet,
     basename='matchnight'
