@@ -234,4 +234,5 @@ class TeamSeasonViewSet(viewsets.ModelViewSet):
             serializer.save(captain=captain)
         except Player.DoesNotExist:
             raise ValidationError(
-                f"Invalid captain: Player with ID {captain_id} does not exist.")
+                f"Invalid captain: \
+                    Player with ID {captain_id} does not exist.")

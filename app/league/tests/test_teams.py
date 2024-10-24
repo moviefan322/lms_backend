@@ -13,21 +13,26 @@ from core.models import (
     League,
     Player,
     Season,
-    TeamPlayer,
+    # TeamPlayer,
     TeamSeason,
 )
-from league.serializers import TeamSeasonSerializer
-
+# from league.serializers import TeamSeasonSerializer
 
 
 def team_seasons_url(league_id, season_id, team_season_id):
     """Return the team season list URL."""
-    return reverse('league:teamseason-detail', args=[league_id, season_id, team_season_id])
+    return reverse(
+        'league:teamseason-detail',
+        args=[league_id, season_id, team_season_id]
+    )
 
 
 def team_seasons_list_url(league_id, season_id):
     """Return the team season detail URL."""
-    return reverse('league:teamseason-list', args=[league_id, season_id])
+    return reverse(
+        'league:teamseason-list',
+        args=[league_id, season_id]
+    )
 
 
 def create_league(admin_user, **params):

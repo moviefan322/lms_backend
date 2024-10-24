@@ -105,7 +105,6 @@ class Season(models.Model):
     def __str__(self):
         return f"{self.name} ({self.year})"
 
-
     @property
     def admin(self):
         """Inherit admin from the league."""

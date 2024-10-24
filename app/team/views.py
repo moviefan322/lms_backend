@@ -1,10 +1,9 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import ValidationError
 
-from core.models import Team, League, TeamSeason, Season, Player
+from core.models import Team, League
 from team import serializers
-from .permissions import IsAdminOrReadOnly, IsTeamSeasonAdminOrReadOnly
+from .permissions import IsAdminOrReadOnly
 
 
 class TeamViewSet(viewsets.ModelViewSet):
@@ -39,4 +38,3 @@ class TeamViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         """Update a team if the user is authorized."""
         serializer.save()
-

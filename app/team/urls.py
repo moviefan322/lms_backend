@@ -13,4 +13,3 @@ app_name = 'team'
 urlpatterns = [
     path('', include(router.urls)),
 ]
-

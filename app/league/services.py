@@ -17,9 +17,7 @@ class ScheduleService:
         current_week = 0
         num_teams = len(self.teams)
 
-        assert num_teams % 2 == (
-            0, "Number of teams must be even for scheduling."
-        )
+        assert num_teams % 2 == 0, "Teams must be even."
 
         # Split the teams into two halves
         half = num_teams // 2
