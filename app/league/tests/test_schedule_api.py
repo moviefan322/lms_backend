@@ -21,11 +21,9 @@ from django.contrib.auth import get_user_model
 from datetime import date, time
 
 
-def schedule_url(league_id, season_id, schedule_id):
-    """Return the schedule URL for a given league, season, and schedule."""
-    return reverse('league:schedule-detail', args=[
-        league_id, season_id, schedule_id
-    ])
+def schedule_url(league_id, season_id):
+    """Return the schedule URL for a given league and season."""
+    return reverse('league:season-schedule', args=[league_id, season_id])
 
 
 def matches_list_url(league_id, season_id):
@@ -36,11 +34,6 @@ def matches_list_url(league_id, season_id):
 def games_list_url(league_id, season_id):
     """Return the game list URL for a given league and season."""
     return reverse('league:game-list', args=[league_id, season_id])
-
-
-def schedule_list_url(league_id, season_id):
-    """Return the schedule list URL for a given league and season."""
-    return reverse('league:schedule-list', args=[league_id, season_id])
 
 
 def matchnight_url(league_id, schedule_id):
@@ -269,28 +262,28 @@ class PublicScheduleApiTests(TestCase):
             'default_start_time': '19:00'
         }
 
-        url = schedule_list_url(self.league.id, self.season.id)
+        url = schedule_url(self.league.id, self.season.id)
         res = self.client.post(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_user_cannot_view_schedule(self):
         """Test that an unauthenticated user cannot view a schedule."""
-        schedule = Schedule.objects.create(
+        Schedule.objects.create(
             season=self.season,
             start_date=date(2024, 10, 1),
             num_weeks=4,
             default_start_time='19:00'
         )
 
-        url = schedule_url(self.league.id, self.season.id, schedule.id)
+        url = schedule_url(self.league.id, self.season.id)
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_user_cannot_modify_schedule(self):
         """Test that an unauthenticated user cannot modify a schedule."""
-        schedule = Schedule.objects.create(
+        Schedule.objects.create(
             season=self.season,
             start_date=date(2024, 10, 1),
             num_weeks=4,
@@ -299,21 +292,21 @@ class PublicScheduleApiTests(TestCase):
 
         payload = {'num_weeks': 6}
 
-        url = schedule_url(self.league.id, self.season.id, schedule.id)
+        url = schedule_url(self.league.id, self.season.id)
         res = self.client.patch(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_unauthenticated_user_cannot_delete_schedule(self):
         """Test that an unauthenticated user cannot delete a schedule."""
-        schedule = Schedule.objects.create(
+        Schedule.objects.create(
             season=self.season,
             start_date=date(2024, 10, 1),
             num_weeks=4,
             default_start_time='19:00'
         )
 
-        url = schedule_url(self.league.id, self.season.id, schedule.id)
+        url = schedule_url(self.league.id, self.season.id)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -420,7 +413,7 @@ class AdminScheduleApiTests(TestCase):
             'default_start_time': '19:00'
         }
 
-        url = schedule_list_url(self.league.id, self.season.id)
+        url = schedule_url(self.league.id, self.season.id)
         res = self.client.post(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
@@ -429,14 +422,14 @@ class AdminScheduleApiTests(TestCase):
 
     def test_admin_can_view_schedule(self):
         """Test that an admin user can view a schedule."""
-        schedule = Schedule.objects.create(
+        Schedule.objects.create(
             season=self.season,
             start_date=date(2024, 10, 1),
             num_weeks=4,
             default_start_time='19:00'
         )
 
-        url = schedule_url(self.league.id, self.season.id, schedule.id)
+        url = schedule_url(self.league.id, self.season.id)
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -445,7 +438,7 @@ class AdminScheduleApiTests(TestCase):
 
     def test_admin_can_modify_schedule(self):
         """Test that an admin user can modify a schedule."""
-        schedule = Schedule.objects.create(
+        Schedule.objects.create(
             season=self.season,
             start_date=date(2024, 10, 1),
             num_weeks=4,
@@ -454,7 +447,7 @@ class AdminScheduleApiTests(TestCase):
 
         payload = {'num_weeks': 6}
 
-        url = schedule_url(self.league.id, self.season.id, schedule.id)
+        url = schedule_url(self.league.id, self.season.id)
         res = self.client.patch(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -462,14 +455,14 @@ class AdminScheduleApiTests(TestCase):
 
     def test_admin_can_delete_schedule(self):
         """Test that an admin user can delete a schedule."""
-        schedule = Schedule.objects.create(
+        Schedule.objects.create(
             season=self.season,
             start_date=date(2024, 10, 1),
             num_weeks=4,
             default_start_time='19:00'
         )
 
-        url = schedule_url(self.league.id, self.season.id, schedule.id)
+        url = schedule_url(self.league.id, self.season.id)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
@@ -834,7 +827,7 @@ class AdditionalAdminScheduleApiTests(TestCase):
             'default_start_time': '19:00'
         }
 
-        url = schedule_list_url(self.league.id, self.season.id)
+        url = schedule_url(self.league.id, self.season.id)
         res = self.client.post(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
@@ -843,14 +836,14 @@ class AdditionalAdminScheduleApiTests(TestCase):
 
     def test_additional_admin_can_view_schedule(self):
         """Test that an additional admin user can view a schedule."""
-        schedule = Schedule.objects.create(
+        Schedule.objects.create(
             season=self.season,
             start_date=date(2024, 10, 1),
             num_weeks=4,
             default_start_time='19:00'
         )
 
-        url = schedule_url(self.league.id, self.season.id, schedule.id)
+        url = schedule_url(self.league.id, self.season.id)
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -859,7 +852,7 @@ class AdditionalAdminScheduleApiTests(TestCase):
 
     def test_additional_admin_can_modify_schedule(self):
         """Test that an additional admin user can modify a schedule."""
-        schedule = Schedule.objects.create(
+        Schedule.objects.create(
             season=self.season,
             start_date=date(2024, 10, 1),
             num_weeks=4,
@@ -868,7 +861,7 @@ class AdditionalAdminScheduleApiTests(TestCase):
 
         payload = {'num_weeks': 6}
 
-        url = schedule_url(self.league.id, self.season.id, schedule.id)
+        url = schedule_url(self.league.id, self.season.id)
         res = self.client.patch(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -876,14 +869,14 @@ class AdditionalAdminScheduleApiTests(TestCase):
 
     def test_additional_admin_can_delete_schedule(self):
         """Test that an additional admin user can delete a schedule."""
-        schedule = Schedule.objects.create(
+        Schedule.objects.create(
             season=self.season,
             start_date=date(2024, 10, 1),
             num_weeks=4,
             default_start_time='19:00'
         )
 
-        url = schedule_url(self.league.id, self.season.id, schedule.id)
+        url = schedule_url(self.league.id, self.season.id)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
@@ -1206,14 +1199,14 @@ class UserScheduleApiTests(TestCase):
 
     def test_user_can_view_schedule(self):
         """Test that a regular user can view a schedule."""
-        schedule = Schedule.objects.create(
+        Schedule.objects.create(
             season=self.season,
             start_date=date(2024, 10, 1),
             num_weeks=4,
             default_start_time='19:00'
         )
 
-        url = schedule_url(self.league.id, self.season.id, schedule.id)
+        url = schedule_url(self.league.id, self.season.id)
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -1222,7 +1215,7 @@ class UserScheduleApiTests(TestCase):
 
     def test_user_cannot_modify_schedule(self):
         """Test that a regular user cannot modify a schedule."""
-        schedule = Schedule.objects.create(
+        Schedule.objects.create(
             season=self.season,
             start_date=date(2024, 10, 1),
             num_weeks=4,
@@ -1231,7 +1224,7 @@ class UserScheduleApiTests(TestCase):
 
         payload = {'num_weeks': 6}
 
-        url = schedule_url(self.league.id, self.season.id, schedule.id)
+        url = schedule_url(self.league.id, self.season.id)
         res = self.client.patch(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
