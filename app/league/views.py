@@ -2,7 +2,6 @@ from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
-from django.db import models
 
 from core.models import (
     League,
@@ -153,23 +152,9 @@ class SeasonViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminOrLeagueMember]
 
     def get_queryset(self):
-        """Return seasons for the league that the
-        current authenticated user is associated with."""
-        user = self.request.user
+        """Return all seasons for the given league."""
         league_id = self.kwargs.get('league_id')
-
-        seasons = Season.objects.filter(
-            models.Q(league__admin=user) |
-            models.Q(league__additional_admins=user),
-            league_id=league_id
-        )
-
-        seasons_as_player = Season.objects.filter(
-            league__seasons__teamseason__players__user=user,
-            league_id=league_id
-        )
-
-        return (seasons | seasons_as_player).distinct()
+        return Season.objects.filter(league_id=league_id)
 
     def perform_create(self, serializer):
         """Create a new season."""

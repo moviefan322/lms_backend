@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from team.serializers import TeamPlayerSerializer
+from team.serializers import TeamPlayerSerializer, TeamSeasonSerializer
 from core.models import (
     League,
     Season,
@@ -64,10 +64,12 @@ class ScheduleSerializer(serializers.ModelSerializer):
 class SeasonSerializer(serializers.ModelSerializer):
     """Serializer for the Season model."""
     schedule = serializers.SerializerMethodField()
+    teamseason = TeamSeasonSerializer(many=True, read_only=True)
 
     class Meta:
         model = Season
-        fields = ['id', 'name', 'year', 'is_active', 'league', 'schedule']
+        fields = ['id', 'name', 'year', 'is_active',
+                  'league', 'schedule', 'teamseason']
         read_only_fields = ['id', 'league']
 
     def get_schedule(self, obj):

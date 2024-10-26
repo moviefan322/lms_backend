@@ -19,7 +19,7 @@ class TeamSeasonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TeamSeason
-        fields = ['id', 'team', 'season', 'captain', 'team_players']
+        fields = ['id', 'name', 'team', 'season', 'captain', 'team_players']
         read_only_fields = ['id', 'name', 'wins',
                             'losses', 'games_won', 'games_lost']
 

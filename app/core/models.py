@@ -133,7 +133,12 @@ class TeamSeason(models.Model):
     """Intermediary model for tracking team stats in a specific season."""
     team = models.ForeignKey(Team, on_delete=models.CASCADE, null=False)
     name = models.CharField(max_length=255)
-    season = models.ForeignKey(Season, on_delete=models.CASCADE, null=False)
+    season = models.ForeignKey(
+        Season,
+        on_delete=models.CASCADE,
+        null=False,
+        related_name='teamseason'
+    )
     captain = models.ForeignKey(
         'Player',
         on_delete=models.CASCADE,
@@ -147,6 +152,11 @@ class TeamSeason(models.Model):
 
     class Meta:
         unique_together = ('team', 'season')
+
+    def save(self, *args, **kwargs):
+        if not self.name:
+            self.name = self.team.name
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.team.name} in {self.season.name} ({self.season.year})'
