@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+from django.shortcuts import get_object_or_404
 
 from core.models import (
     League,
@@ -15,6 +16,7 @@ from core.models import (
     Player
 )
 from league import serializers
+from team.serializers import TeamSeasonSerializer
 from .permissions import IsAdminOrLeagueMember
 
 
@@ -152,14 +154,16 @@ class SeasonViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminOrLeagueMember]
 
     def get_queryset(self):
-        """Return all seasons for the given league."""
+        """Return all seasons for the given league with optimized query."""
         league_id = self.kwargs.get('league_id')
-        return Season.objects.filter(league_id=league_id)
+        return Season.objects.filter(
+            league_id=league_id
+        ).prefetch_related('teamseason__team_players')
 
     def perform_create(self, serializer):
-        """Create a new season."""
+        """Create a new season and associate it with the league."""
         league_id = self.kwargs['league_id']
-        league = League.objects.get(id=league_id)
+        league = get_object_or_404(League, id=league_id)
         serializer.save(league=league)
 
 
@@ -196,13 +200,13 @@ class LeagueViewSet(viewsets.ModelViewSet):
 class TeamSeasonViewSet(viewsets.ModelViewSet):
     """View for managing TeamSeason API requests."""
     queryset = TeamSeason.objects.all()
-    serializer_class = serializers.TeamSeasonSerializer
+    serializer_class = TeamSeasonSerializer
     http_method_names = ['get', 'post', 'put', 'patch', 'delete']
     permission_classes = [IsAuthenticated, IsAdminOrLeagueMember]
 
     def get_queryset(self):
-        """Filter team season by team or season if provided."""
-        queryset = self.queryset
+        """Filter and optimize queryset for TeamSeason."""
+        queryset = self.queryset.prefetch_related('team_players')
 
         team_id = self.request.query_params.get('team_id')
         if team_id:
