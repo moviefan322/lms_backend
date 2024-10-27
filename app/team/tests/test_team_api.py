@@ -984,3 +984,120 @@ class AdditionAdminTeamPlayerApiTests(TestCase):
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class UserTeamPlayerApiTests(TestCase):
+    """Test authenticated team API access"""
+
+    def setUp(self):
+        self.client = APIClient()
+
+        self.admin_user = get_user_model().objects.create_user(
+            'admin@example.com',
+            'test123',
+            is_admin=True,
+        )
+        self.other_user = get_user_model().objects.create_user(
+            'user@example.com',
+            'test123',
+            is_admin=False,
+        )
+
+        player_profile = create_player(name='Player 1')
+        self.other_user.player_profile = player_profile
+        self.other_user.save()
+
+        self.league = create_league(self.admin_user)
+        self.season = create_season(self.league)
+        self.team = create_team(self.league)
+        self.team_season = create_team_season(
+            self.team, self.season, captain=create_player())
+        self.team_player = create_team_player(self.team_season, player_profile)
+
+        self.client.force_authenticate(self.other_user)
+
+    def test_user_cannot_create_team_player(self):
+        """Test that a user cannot create a team player"""
+        league = create_league(self.admin_user)
+        season = create_season(league)
+        team = create_team(league)
+        team_season = create_team_season(team, season, captain=create_player())
+
+        payload = {
+            'player': create_player().id,
+            'handicap': 3,
+            'wins': 0,
+            'losses': 0,
+            'is_active': True,
+        }
+
+        res = self.client.post(team_player_list_url(
+            league.id, season.id, team_season.id), payload)
+
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_user_cannot_update_team_player(self):
+        """Test that a user cannot update a team player"""
+        league = create_league(self.admin_user)
+        team = create_team(league)
+        team_season = create_team_season(team, self.league.seasons.first())
+        team_player = create_team_player(team_season, create_player())
+
+        payload = {
+            'player': create_player().id,
+            'handicap': 4,
+        }
+        url = team_player_detail_url(
+            league.id,
+            self.league.seasons.first().id,
+            team_season.id,
+            team_player.id
+        )
+        res = self.client.put(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_user_cannot_delete_team_player(self):
+        """Test that a user cannot delete a team player"""
+        league = create_league(self.admin_user)
+        team = create_team(league)
+        team_season = create_team_season(team, self.league.seasons.first())
+        team_player = create_team_player(team_season, create_player())
+
+        url = team_player_detail_url(
+            league.id,
+            self.league.seasons.first().id,
+            team_season.id,
+            team_player.id
+        )
+        res = self.client.delete(url)
+
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_user_can_fetch_team_players_in_their_league(self):
+        """Test that a user associated with
+        a league can fetch its team players"""
+        res = self.client.get(team_player_list_url(
+            self.league.id, self.season.id, self.team_season.id))
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 1)
+        self.assertEqual(res.data[0]['player'],
+                         self.other_user.player_profile.id)
+
+    def test_user_can_get_team_player_detail(self):
+        """Test that a user can retrieve a team player detail."""
+        url = team_player_detail_url(
+            self.league.id,
+            self.season.id,
+            self.team_season.id,
+            self.team_player.id
+        )
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['player'], self.other_user.player_profile.id)
+        self.assertEqual(res.data['handicap'], self.team_player.handicap)
+        self.assertEqual(res.data['wins'], self.team_player.wins)
+        self.assertEqual(res.data['losses'], self.team_player.losses)
+        self.assertEqual(res.data['is_active'], self.team_player.is_active)
