@@ -786,3 +786,201 @@ class AdditionAdminLeagueApiTests(TestCase):
         self.assertEqual(res.data, serializer.data)
         self.assertEqual(res.data['name'], team.name)
         self.assertEqual(res.data['league'], team.league.id)
+
+
+class AdditionAdminTeamPlayerApiTests(TestCase):
+    """Test authenticated team API access"""
+
+    def setUp(self):
+        self.client = APIClient()
+
+        self.admin_user = get_user_model().objects.create_user(
+            'admin4@admin.com',
+            'test123',
+            is_admin=True,
+        )
+        self.additional_admin_user = get_user_model().objects.create_user(
+            'admin5@admin.com',
+            'test123',
+            is_admin=True,
+        )
+        self.other_user = get_user_model().objects.create_user(
+            'user3@user.com',
+            'test123',
+            is_admin=False,
+        )
+        player_profile = create_player(name='Player 1')
+        self.other_user.player_profile = player_profile
+        self.other_user.save()
+
+        self.league = create_league(self.admin_user)
+        self.season = create_season(self.league)
+        self.league.additional_admins.add(self.additional_admin_user)
+        self.team = create_team(self.league)
+
+        self.client.force_authenticate(self.additional_admin_user)
+
+    def test_additional_admin_can_create_team_player(self):
+        """Test that additional admin can create a team player"""
+        league = create_league(self.admin_user)
+        season = create_season(league)
+        team = create_team(league)
+        team_season = create_team_season(team, season, captain=create_player())
+        league.additional_admins.add(self.additional_admin_user)
+
+        self.client.force_authenticate(self.additional_admin_user)
+
+        payload = {
+            'player': create_player().id,
+            'handicap': 3,
+            'wins': 0,
+            'losses': 0,
+            'is_active': True,
+        }
+
+        res = self.client.post(team_player_list_url(
+            league.id, season.id, team_season.id), payload)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        team_player = TeamPlayer.objects.get(id=res.data['id'])
+        self.assertEqual(payload['player'], team_player.player.id)
+        self.assertEqual(payload['handicap'], team_player.handicap)
+        self.assertEqual(payload['wins'], team_player.wins)
+        self.assertEqual(payload['losses'], team_player.losses)
+        self.assertEqual(payload['is_active'], team_player.is_active)
+
+    def test_additional_admin_can_update_team_player(self):
+        """Test that additional admin can update a team player"""
+        league = create_league(self.admin_user)
+        team = create_team(league)
+        team_season = create_team_season(team, self.league.seasons.first())
+        team_player = create_team_player(team_season, create_player())
+        league.additional_admins.add(self.additional_admin_user)
+
+        self.client.force_authenticate(self.additional_admin_user)
+
+        payload = {
+            'player': create_player().id,
+            'handicap': 4,
+        }
+        url = team_player_detail_url(
+            league.id,
+            self.league.seasons.first().id,
+            team_season.id,
+            team_player.id
+        )
+        res = self.client.put(url, payload)
+
+        team_player.refresh_from_db()
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(team_player.handicap, payload['handicap'])
+
+    def test_additional_admin_can_delete_team_player(self):
+        """Test that additional admin can delete a team player"""
+        league = create_league(self.admin_user)
+        team = create_team(league)
+        team_season = create_team_season(team, self.league.seasons.first())
+        team_player = create_team_player(team_season, create_player())
+        league.additional_admins.add(self.additional_admin_user)
+
+        self.client.force_authenticate(self.additional_admin_user)
+
+        url = team_player_detail_url(
+            league.id,
+            self.league.seasons.first().id,
+            team_season.id,
+            team_player.id
+        )
+        res = self.client.delete(url)
+
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(
+            TeamPlayer.objects.filter(id=team_player.id).count(), 0)
+
+    def test_additional_admin_can_fetch_team_players(self):
+        """Test that additional admin can fetch team players"""
+        league = create_league(self.admin_user)
+        team = create_team(league)
+        season = create_season(league)
+        team_season = create_team_season(team, season, captain=create_player())
+        create_team_player(team_season, create_player())
+        league.additional_admins.add(self.additional_admin_user)
+
+        self.client.force_authenticate(self.additional_admin_user)
+
+        res = self.client.get(team_player_list_url(
+            league.id, season.id, team_season.id))
+
+        team_players = TeamPlayer.objects.all().order_by('player__name')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 1)
+        self.assertEqual(len(res.data), team_players.count())
+
+    def test_additional_admin_cannot_create_team_player_for_other_league(self):
+        """Test that additional admin cannot
+        create a team player for another league"""
+        league = create_league(self.admin_user)
+        season = create_season(league)
+        team = create_team(league)
+        team_season = create_team_season(team, season, captain=create_player())
+
+        self.client.force_authenticate(self.additional_admin_user)
+
+        payload = {
+            'player': create_player().id,
+            'handicap': 3,
+            'wins': 0,
+            'losses': 0,
+            'is_active': True,
+        }
+
+        res = self.client.post(team_player_list_url(
+            league.id, season.id, team_season.id), payload)
+
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_additional_admin_cannot_update_team_player_for_other_league(self):
+        """Test that additional admin cannot
+        update a team player for another league"""
+        league = create_league(self.admin_user)
+        season = create_season(league)
+        team = create_team(league)
+        team_season = create_team_season(team, season)
+        team_player = create_team_player(team_season, create_player())
+
+        self.client.force_authenticate(self.additional_admin_user)
+
+        payload = {
+            'handicap': 4,
+        }
+        url = team_player_detail_url(
+            league.id,
+            season.id,
+            team_season.id,
+            team_player.id
+        )
+        res = self.client.patch(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_additional_admin_cannot_delete_team_player_for_other_league(self):
+        """Test that additional admin cannot
+        delete a team player for another league"""
+        league = create_league(self.admin_user)
+        season = create_season(league)
+        team = create_team(league)
+        team_season = create_team_season(team, season)
+        team_player = create_team_player(team_season, create_player())
+
+        self.client.force_authenticate(self.additional_admin_user)
+
+        url = team_player_detail_url(
+            league.id,
+            season.id,
+            team_season.id,
+            team_player.id
+        )
+        res = self.client.delete(url)
+
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
