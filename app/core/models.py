@@ -196,6 +196,7 @@ class TeamPlayer(models.Model):
     )
     player = models.ForeignKey(
         'Player', on_delete=models.CASCADE, related_name='team_players')
+    name = models.CharField(max_length=255, editable=False)
     handicap = models.IntegerField(default=3)
     wins = models.IntegerField(default=0)
     losses = models.IntegerField(default=0)
@@ -205,6 +206,11 @@ class TeamPlayer(models.Model):
 
     class Meta:
         unique_together = ('team_season', 'player')
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            self.name = self.player.name
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.team_season} - {self.player}'

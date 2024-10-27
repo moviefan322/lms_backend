@@ -1,9 +1,34 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
 
-from core.models import Team, League
+from core.models import Team, League, TeamSeason, TeamPlayer
 from team import serializers
 from .permissions import IsAdminOrReadOnly
+
+
+class TeamPlayerViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing TeamPlayer API requests."""
+    serializer_class = serializers.TeamPlayerSerializer
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+
+    def get_queryset(self):
+        """Filter TeamPlayer by teamseason_id."""
+        team_season_id = self.kwargs['teamseason_id']
+        return TeamPlayer.objects.filter(team_season_id=team_season_id)
+
+    def perform_create(self, serializer):
+        team_season_id = self.kwargs['teamseason_id']
+        team_season = get_object_or_404(TeamSeason, id=team_season_id)
+        serializer.save(team_season=team_season)
+
+    def perform_update(self, serializer):
+        team_player_id = self.kwargs['pk']
+
+        team_player = get_object_or_404(TeamPlayer, id=team_player_id)
+        player = team_player.player
+
+        serializer.save(player=player)
 
 
 class TeamViewSet(viewsets.ModelViewSet):

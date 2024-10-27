@@ -1,16 +1,31 @@
 from rest_framework import serializers
-from core.models import Team, TeamSeason, TeamPlayer
-from player.serializers import PlayerSerializer
+from core.models import Team, TeamSeason, TeamPlayer, Player
 
 
 class TeamPlayerSerializer(serializers.ModelSerializer):
     """Serializer for the TeamPlayer model."""
-    player = PlayerSerializer(read_only=True)
+    player = serializers.PrimaryKeyRelatedField(queryset=Player.objects.all())
+    name = serializers.SerializerMethodField()
 
     class Meta:
         model = TeamPlayer
-        fields = ['id', 'player', 'handicap', 'wins', 'losses', 'is_active']
-        read_only_fields = ['id']
+        fields = ['id', 'player', 'name', 'handicap',
+                  'is_active', 'wins', 'losses']
+        read_only_fields = ['id', 'name']
+        extra_kwargs = {
+            'handicap': {'required': False},
+            'wins': {'required': False},
+            'losses': {'required': False},
+        }
+
+    def get_name(self, obj):
+        return obj.player.name
+
+    def create(self, validated_data):
+        validated_data.setdefault('handicap', 3)
+        validated_data['wins'] = 0
+        validated_data['losses'] = 0
+        return super().create(validated_data)
 
 
 class TeamSeasonSerializer(serializers.ModelSerializer):
