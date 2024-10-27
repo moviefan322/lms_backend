@@ -60,6 +60,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     objects = UserManager()
 
@@ -98,6 +99,7 @@ class Season(models.Model):
     league = models.ForeignKey(
         League, on_delete=models.CASCADE, related_name='seasons')
     is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('name', 'year', 'league')
@@ -124,6 +126,7 @@ class Team(models.Model):
         on_delete=models.CASCADE,
         related_name='teams'
     )
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
@@ -131,7 +134,8 @@ class Team(models.Model):
 
 class TeamSeason(models.Model):
     """Intermediary model for tracking team stats in a specific season."""
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, null=False)
+    team = models.ForeignKey(
+        Team, on_delete=models.CASCADE, null=False, related_name='team_season')
     name = models.CharField(max_length=255)
     season = models.ForeignKey(
         Season,
@@ -149,6 +153,8 @@ class TeamSeason(models.Model):
     losses = models.IntegerField(default=0)
     games_won = models.IntegerField(default=0)
     games_lost = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('team', 'season')
@@ -175,6 +181,7 @@ class Player(models.Model):
         blank=True
     )
     is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
@@ -194,6 +201,7 @@ class TeamPlayer(models.Model):
     losses = models.IntegerField(default=0)
     is_captain = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('team_season', 'player')
@@ -342,6 +350,7 @@ class Game(models.Model):
     winner = models.CharField(max_length=10, null=True, blank=True)
     status = models.CharField(max_length=50, default='Scheduled')
     player_snapshot = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def update_game_winner(self):
         """Determine the winner based on scores and update match scores."""

@@ -38,12 +38,13 @@ class TeamSeasonSerializer(serializers.ModelSerializer):
 
 class TeamSerializer(serializers.ModelSerializer):
     """Serializer for the Team model."""
-    team_season = serializers.SerializerMethodField()
+    team_season = TeamSeasonSerializer(many=True, read_only=True)
 
     class Meta:
         model = Team
         fields = ['id', 'name', 'league', 'team_season']
 
     def get_team_season(self, obj):
-        team_season = TeamSeason.objects.filter(team=obj).first()
-        return TeamSeasonSerializer(team_season).data if team_season else None
+        team_seasons = TeamSeason.objects.filter(
+            team=obj).order_by('-created_at')
+        return TeamSeasonSerializer(team_seasons, many=True).data
