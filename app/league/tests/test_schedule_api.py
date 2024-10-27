@@ -1321,7 +1321,7 @@ class UserMatchApiTests(TestCase):
         self.team2 = create_team(league=self.league)
         self.team3 = create_team(league=self.league)
         self.team_season1 = create_team_season(
-            team=self.team1, season=self.season, captain=self.player)
+            team=self.team1, season=self.season, captain=create_player())
         self.team_player = create_team_player(
             team_season=self.team_season1, player=self.player)
         self.team_season2 = create_team_season(
@@ -1424,7 +1424,7 @@ class UserGameApiTests(TestCase):
         self.team2 = create_team(league=self.league)
         self.team3 = create_team(league=self.league)
         self.team_season1 = create_team_season(
-            team=self.team1, season=self.season, captain=self.player)
+            team=self.team1, season=self.season, captain=create_player())
         self.team_player = create_team_player(
             team_season=self.team_season1, player=self.player)
         self.team_season2 = create_team_season(

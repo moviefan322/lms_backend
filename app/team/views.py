@@ -15,7 +15,8 @@ class TeamPlayerViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filter TeamPlayer by teamseason_id."""
         team_season_id = self.kwargs['teamseason_id']
-        return TeamPlayer.objects.filter(team_season_id=team_season_id)
+        return TeamPlayer.objects.filter(
+            team_season_id=team_season_id).order_by('id')
 
     def perform_create(self, serializer):
         team_season_id = self.kwargs['teamseason_id']

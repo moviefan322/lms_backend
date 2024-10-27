@@ -215,7 +215,7 @@ class AdminPlayerApiTests(TestCase):
         season = create_season(league)
         team = create_team(league)
         player = create_player()
-        team_season = create_team_season(team, season, captain=player)
+        team_season = create_team_season(team, season, captain=create_player())
         create_team_player(player, team_season)
 
         url = reverse('player:player-detail', args=[player.id])
@@ -252,7 +252,7 @@ class AdminPlayerApiTests(TestCase):
         league = create_league(self.admin_user)
         season = create_season(league)
         team = create_team(league)
-        team_season = create_team_season(team, season, captain=player)
+        team_season = create_team_season(team, season, captain=create_player())
         create_team_player(player, team_season)
 
         payload = {
@@ -340,7 +340,7 @@ class UserPlayerApiTests(TestCase):
         league = create_league(create_admin())
         season = create_season(league)
         team = create_team(league)
-        team_season = create_team_season(team, season, captain=player1)
+        team_season = create_team_season(team, season, captain=create_player())
         create_team_player(player1, team_season)
         create_team_player(player2, team_season)
 
@@ -357,7 +357,7 @@ class UserPlayerApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(sorted_response_data, sorted_serializer_data)
-        self.assertEqual(len(res.data), 2)
+        self.assertEqual(len(res.data), 3)
 
     def test_view_player_detail(self):
         """Test viewing a player detail"""
@@ -366,7 +366,7 @@ class UserPlayerApiTests(TestCase):
         team = create_team(league)
         player = create_player(name="Test Player")
 
-        team_season = create_team_season(team, season, captain=player)
+        team_season = create_team_season(team, season, captain=create_player())
         create_team_player(player, team_season)
 
         self.user.player_profile = player
@@ -386,7 +386,7 @@ class UserPlayerApiTests(TestCase):
         league = create_league(create_admin())
         season = create_season(league)
         team = create_team(league)
-        team_season = create_team_season(team, season, captain=player)
+        team_season = create_team_season(team, season, captain=create_player())
         create_team_player(player, team_season)
 
         self.user.player_profile = player
@@ -409,13 +409,13 @@ class UserPlayerApiTests(TestCase):
         league = create_league(create_admin())
         season = create_season(league)
         team = create_team(league)
-        team_season = create_team_season(team, season, captain=player)
+        team_season = create_team_season(team, season, captain=create_player())
         create_team_player(player, team_season)
 
         other_team = create_team(league)
         other_player = create_player(name='Player 2')
         other_team_season = create_team_season(
-            other_team, season, captain=other_player)
+            other_team, season, captain=create_player())
         create_team_player(other_player, other_team_season)
 
         self.user.player_profile = player

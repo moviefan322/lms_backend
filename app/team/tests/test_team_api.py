@@ -280,7 +280,7 @@ class AdminTeamApiTests(TestCase):
         team = create_team(league)
         player = create_player()
         team_season = TeamSeason.objects.create(
-            team=team, season=season, captain=player)
+            team=team, season=season, captain=create_player())
 
         create_team_player(team_season, player)
 
@@ -459,7 +459,7 @@ class AdminTeamPlayerApiTests(TestCase):
 
         team_players = TeamPlayer.objects.all().order_by('player__name')
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(res.data), 3)
+        self.assertEqual(len(res.data), 4)
         self.assertEqual(len(res.data), team_players.count())
 
     def test_team_player_has_player(self):
@@ -608,6 +608,21 @@ class AdminTeamPlayerApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_captain_auto_added_as_team_player(self):
+        """Test that the captain is automatically added as a team player."""
+        team = create_team(self.league)
+        season = create_season(self.league)
+        player = create_player()
+        team_season = create_team_season(team, season, captain=player)
+
+        self.client.force_authenticate(self.admin_user)
+        url = team_player_list_url(self.league.id, season.id, team_season.id)
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 1)
+        self.assertEqual(res.data[0]['player'], player.id)
+
 
 class AdditionAdminLeagueApiTests(TestCase):
     """Test authenticated team API access"""
@@ -748,7 +763,7 @@ class AdditionAdminLeagueApiTests(TestCase):
 
         season = create_season(league)
         team_season1 = TeamSeason.objects.create(
-            team=team1, season=season, captain=self.other_user.player_profile)
+            team=team1, season=season, captain=create_player())
         TeamSeason.objects.create(
             team=team2, season=season, captain=create_player())
 
@@ -773,7 +788,7 @@ class AdditionAdminLeagueApiTests(TestCase):
         team = create_team(league)
         season = create_season(league)
         team_season = TeamSeason.objects.create(
-            team=team, season=season, captain=self.other_user.player_profile)
+            team=team, season=season, captain=create_player())
         create_team_player(team_season, self.other_user.player_profile)
 
         self.client.force_authenticate(self.other_user)
@@ -914,7 +929,7 @@ class AdditionAdminTeamPlayerApiTests(TestCase):
 
         team_players = TeamPlayer.objects.all().order_by('player__name')
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(res.data), 1)
+        self.assertEqual(len(res.data), 2)
         self.assertEqual(len(res.data), team_players.count())
 
     def test_additional_admin_cannot_create_team_player_for_other_league(self):
@@ -1081,9 +1096,11 @@ class UserTeamPlayerApiTests(TestCase):
             self.league.id, self.season.id, self.team_season.id))
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]['player'],
+        self.assertEqual(len(res.data), 2)
+        self.assertEqual(len(res.data), 2)
+        self.assertEqual(res.data[1]['player'],
                          self.other_user.player_profile.id)
+        self.assertEqual(res.data[0]['player'], self.team_season.captain.id)
 
     def test_user_can_get_team_player_detail(self):
         """Test that a user can retrieve a team player detail."""

@@ -491,7 +491,7 @@ class PlayerTeamSeasonApiTests(TestCase):
         self.player_user.player_profile = self.player
         self.newPlayer = create_player()
         self.team_season = create_team_season(
-            self.team, self.season, captain=self.player)
+            self.team, self.season, captain=create_player())
         self.team_player = create_team_player(self.team_season, self.player)
 
     def test_retrieve_team_seasons(self):

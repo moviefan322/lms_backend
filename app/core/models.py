@@ -167,6 +167,15 @@ class TeamSeason(models.Model):
             self.team.save()
         super().save(*args, **kwargs)
 
+        if self.captain and not TeamPlayer.objects.filter(
+            team_season=self, player=self.captain
+        ).exists():
+            TeamPlayer.objects.create(
+                team_season=self,
+                player=self.captain,
+                is_active=True
+            )
+
     def __str__(self):
         return f'{self.team.name} in {self.season.name} ({self.season.year})'
 
