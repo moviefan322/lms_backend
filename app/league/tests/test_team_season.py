@@ -193,11 +193,26 @@ class AdminTeamSeasonApiTests(TestCase):
         self.assertEqual(self.newPlayer.id, payload['captain'])
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
-    def test_full_update_team(self):
+    def test_partial_update_team_season2(self):
+        """Test updating a team season with patch"""
+        payload = {'name': 'Dopey Dwarfs'}
+        url = team_seasons_url(
+            self.league.id,
+            self.season.id,
+            self.team_season.id
+        )
+        res = self.client.patch(url, payload)
+
+        self.team_season.refresh_from_db()
+
+        self.assertEqual(self.team_season.name, payload['name'])
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_full_update_team_season(self):
         """Test updating a team season with put"""
-        team = create_team(self.league, name='New Team Name')
         payload = {
-            'team': team.id,
+            'name': 'Dopey Dwarfs',
+            'team': self.team.id,
             'season': self.season.id,
             'captain': self.newPlayer.id,
         }
@@ -208,8 +223,10 @@ class AdminTeamSeasonApiTests(TestCase):
         )
         res = self.client.put(url, payload)
 
+        # Refresh instance and check all updated fields
         self.team_season.refresh_from_db()
         self.assertEqual(self.team_season.team.id, payload['team'])
+        self.assertEqual(self.team_season.captain.id, payload['captain'])
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
     def test_delete_team_season(self):
@@ -362,6 +379,7 @@ class AdditionalAdminTeamSeasonApiTests(TestCase):
         """Test updating a team season with put"""
         team = create_team(self.league, name='New Team Name')
         payload = {
+            'name': 'New Team Name',
             'team': team.id,
             'season': self.season.id,
             'captain': self.newPlayer.id,

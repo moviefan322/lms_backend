@@ -16,18 +16,19 @@ class TeamPlayerSerializer(serializers.ModelSerializer):
 class TeamSeasonSerializer(serializers.ModelSerializer):
     """Serializer for the TeamSeason model."""
     team_players = TeamPlayerSerializer(many=True, read_only=True)
+    name = serializers.CharField(required=False)
 
     class Meta:
         model = TeamSeason
         fields = ['id', 'name', 'team', 'season', 'captain', 'team_players']
-        read_only_fields = ['id', 'name', 'wins',
-                            'losses', 'games_won', 'games_lost']
+        read_only_fields = ['id', 'wins', 'losses', 'games_won', 'games_lost']
 
     def create(self, validated_data):
         """Override the create method to handle defaults."""
         team = validated_data['team']
-        name = team.name  # Set name from the team
-        validated_data['name'] = name  # Auto-fill name
+
+        validated_data['name'] = validated_data.get('name', team.name)
+        # Initialize other fields
         validated_data['wins'] = 0
         validated_data['losses'] = 0
         validated_data['games_won'] = 0

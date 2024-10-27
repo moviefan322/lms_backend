@@ -227,7 +227,7 @@ class TeamSeasonViewSet(viewsets.ModelViewSet):
         return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
-        """Create a new team season instance."""
+        """Create a new team season instance with synced name."""
         team_id = self.request.data.get('team')
         season_id = self.request.data.get('season')
 
@@ -237,17 +237,32 @@ class TeamSeasonViewSet(viewsets.ModelViewSet):
         except (Team.DoesNotExist, Season.DoesNotExist) as e:
             raise ValidationError(f"Invalid team or season: {str(e)}")
 
-        # Default values for the new TeamSeason
-        serializer.save(team=team, season=season, name=team.name,
-                        wins=0, losses=0, games_won=0, games_lost=0)
+        serializer.save(
+            team=team,
+            season=season,
+            name=team.name,
+            wins=0,
+            losses=0,
+            games_won=0,
+            games_lost=0
+        )
 
     def perform_update(self, serializer):
-        """Update a team season instance."""
+        """Update a team season instance,
+        including syncing team name if updated."""
+        instance = serializer.save()
+
         captain_id = self.request.data.get('captain')
-        try:
-            captain = Player.objects.get(id=captain_id)
-            serializer.save(captain=captain)
-        except Player.DoesNotExist:
-            raise ValidationError(
-                f"Invalid captain: \
-                    Player with ID {captain_id} does not exist.")
+        if captain_id:
+            try:
+                captain = Player.objects.get(id=captain_id)
+                instance.captain = captain
+                instance.save()
+            except Player.DoesNotExist:
+                raise ValidationError(
+                    f"Invalid captain: Player with ID\
+                        {captain_id} does not exist.")
+
+        if 'name' in serializer.validated_data:
+            instance.team.name = serializer.validated_data['name']
+            instance.team.save()

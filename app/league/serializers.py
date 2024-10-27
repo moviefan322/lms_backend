@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from team.serializers import TeamPlayerSerializer, TeamSeasonSerializer
+from team.serializers import TeamSeasonSerializer
 from core.models import (
     League,
     Season,
@@ -7,7 +7,6 @@ from core.models import (
     MatchNight,
     Match,
     Game,
-    TeamSeason,
 )
 
 
@@ -91,4 +90,3 @@ class LeagueSerializer(serializers.ModelSerializer):
         model = League
         fields = ['id', 'name', 'is_active',
                   'admin', 'additional_admins', 'seasons']
-

@@ -156,6 +156,9 @@ class TeamSeason(models.Model):
     def save(self, *args, **kwargs):
         if not self.name:
             self.name = self.team.name
+        if self.name != self.team.name:
+            self.team.name = self.name
+            self.team.save()
         super().save(*args, **kwargs)
 
     def __str__(self):
