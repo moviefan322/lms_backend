@@ -216,7 +216,7 @@ class TeamSeasonViewSet(viewsets.ModelViewSet):
         if season_id:
             queryset = queryset.filter(season_id=season_id)
 
-        return queryset
+        return queryset.order_by('name')
 
     def post(self, request, *args, **kwargs):
         """Handle POST requests explicitly."""
