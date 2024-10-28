@@ -209,6 +209,8 @@ class TeamPlayer(models.Model):
     handicap = models.IntegerField(default=3)
     wins = models.IntegerField(default=0)
     losses = models.IntegerField(default=0)
+    racks_won = models.IntegerField(default=0, null=True, blank=True)
+    racks_lost = models.IntegerField(default=0, null=True, blank=True)
     is_captain = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -219,6 +221,24 @@ class TeamPlayer(models.Model):
     def save(self, *args, **kwargs):
         if not self.pk:
             self.name = self.player.name
+
+        if self.is_active:
+            previous_record = TeamPlayer.objects.filter(
+                player=self.player,
+                team_season__season=self.team_season.season,
+                is_active=True
+            ).exclude(id=self.id).first()
+
+            if previous_record:
+                previous_record.is_active = False
+                previous_record.save()
+
+                self.handicap = previous_record.handicap
+                self.wins = previous_record.wins
+                self.losses = previous_record.losses
+                self.racks_won = previous_record.racks_won
+                self.racks_lost = previous_record.racks_lost
+
         super().save(*args, **kwargs)
 
     def __str__(self):

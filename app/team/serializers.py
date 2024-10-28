@@ -16,12 +16,14 @@ class TeamPlayerSerializer(serializers.ModelSerializer):
             'handicap': {'required': False},
             'wins': {'required': False},
             'losses': {'required': False},
+            'is_active': {'default': True},
         }
 
     def get_name(self, obj):
         return obj.player.name
 
     def create(self, validated_data):
+        validated_data.setdefault('is_active', True)
         validated_data.setdefault('handicap', 3)
         validated_data['wins'] = 0
         validated_data['losses'] = 0

@@ -623,6 +623,85 @@ class AdminTeamPlayerApiTests(TestCase):
         self.assertEqual(len(res.data), 1)
         self.assertEqual(res.data[0]['player'], player.id)
 
+    def test_player_switch_teams_sets_previous_inactive(self):
+        """Test that when a player switches teams,
+        their previous team_player is set to inactive."""
+        team1 = create_team(self.league)
+        team2 = create_team(self.league)
+        season = create_season(self.league)
+        player = create_player()
+
+        team_season1 = create_team_season(
+            team1, season, captain=create_player())
+        team_player1 = create_team_player(team_season1, player)
+
+        self.assertTrue(team_player1.is_active)
+
+        team_season2 = create_team_season(
+            team2, season, captain=create_player())
+        payload = {
+            'player': player.id,
+        }
+        res = self.client.post(
+            team_player_list_url(self.league.id, season.id, team_season2.id),
+            payload
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        team_player1.refresh_from_db()
+
+        self.assertFalse(team_player1.is_active)
+
+        new_team_player = TeamPlayer.objects.get(id=res.data['id'])
+        self.assertTrue(new_team_player.is_active)
+
+    def test_player_record_preserved_on_team_change(self):
+        """Test that a player's record is preserved when they change teams."""
+        team1 = create_team(self.league)
+        team2 = create_team(self.league)
+        season = create_season(self.league)
+        player = create_player()
+
+        team_season1 = create_team_season(
+            team1, season, captain=create_player())
+        team_player1 = create_team_player(
+            team_season1,
+            player,
+            handicap=7,
+            wins=5,
+            losses=10,
+            racks_won=25,
+            racks_lost=30
+        )
+
+        self.assertEqual(team_player1.wins, 5)
+        self.assertEqual(team_player1.losses, 10)
+        self.assertEqual(team_player1.racks_won, 25)
+        self.assertEqual(team_player1.racks_lost, 30)
+        self.assertEqual(team_player1.handicap, 7)
+
+        team_season2 = create_team_season(
+            team2, season, captain=create_player())
+        payload = {
+            'player': player.id,
+        }
+        res = self.client.post(
+            team_player_list_url(self.league.id, season.id, team_season2.id),
+            payload
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        team_player1.refresh_from_db()
+
+        new_team_player = TeamPlayer.objects.get(id=res.data['id'])
+        self.assertFalse(team_player1.is_active)
+        self.assertEqual(new_team_player.wins, 5)
+        self.assertEqual(new_team_player.losses, 10)
+        self.assertEqual(new_team_player.racks_won, 25)
+        self.assertEqual(new_team_player.racks_lost, 30)
+        self.assertEqual(team_player1.handicap, 7)
+
 
 class AdditionAdminLeagueApiTests(TestCase):
     """Test authenticated team API access"""
