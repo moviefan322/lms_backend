@@ -97,6 +97,25 @@ player_names = [
     'Raheem Sterling',
 ]
 
+captain_names = [
+    'Pxierre-Emerick Aubameyang',
+    'Jxack Grealish',
+    'Cxallum Wilson',
+    'Cxhris Wood',
+    'Txammy Abraham',
+    'Cxhristian Pulisic',
+    'Rxicharlison',
+    'Jxamie Vardy',
+    'Mxohamed Salah',
+    'Rxaheem Sterling',
+    'Mxarcus Rashford',
+    'Axllan Saint-Maximin',
+    'Jxohn Lundstram',
+    'Dxanny Ings',
+    'Hxarry Kane',
+    'Mxichail Antonio',
+]
+
 
 class Command(BaseCommand):
     help = 'Seed the league management database with teams, \
@@ -138,17 +157,18 @@ class Command(BaseCommand):
 
             # Create team seasons
             for index, team in enumerate(teams):
-                captain = players[index * 4]
+                captain = Player.objects.create(name=captain_names[index])
                 TeamSeason.objects.create(
                     team=team, season=season, captain=captain)
 
             team_seasons = TeamSeason.objects.all()
 
-            # Create team players
+            # Create team players and skip duplicates
             for index, player in enumerate(players):
                 team_season = team_seasons[index % len(team_seasons)]
-                TeamPlayer.objects.create(
-                    team_season=team_season, player=player)
+                if not TeamPlayer.objects.filter(team_season=team_season, player=player).exists():
+                    TeamPlayer.objects.create(team_season=team_season, player=player)
+
 
             self.stdout.write(self.style.SUCCESS(
                 'Database seeded successfully!'))
