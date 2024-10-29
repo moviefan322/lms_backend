@@ -222,6 +222,19 @@ class TeamPlayer(models.Model):
         if not self.pk:
             self.name = self.player.name
 
+            if 'handicap' not in self.__dict__:
+                # Only if no handicap is specified do we pull the last record
+                last_record = TeamPlayer.objects.filter(
+                    player=self.player,
+                    team_season__season__league=self.team_season.season.league
+                ).order_by('-created_at').first()
+                # Assign the handicap from the last record if it exists
+                if last_record:
+                    self.handicap = last_record.handicap
+                else:
+                    self.handicap = 3
+
+        # Preserve stats if switching within the same season
         if self.is_active:
             previous_record = TeamPlayer.objects.filter(
                 player=self.player,
@@ -233,11 +246,11 @@ class TeamPlayer(models.Model):
                 previous_record.is_active = False
                 previous_record.save()
 
-                self.handicap = previous_record.handicap
-                self.wins = previous_record.wins
-                self.losses = previous_record.losses
-                self.racks_won = previous_record.racks_won
-                self.racks_lost = previous_record.racks_lost
+                if previous_record.team_season.season == self.team_season.season:
+                    self.wins = previous_record.wins
+                    self.losses = previous_record.losses
+                    self.racks_won = previous_record.racks_won
+                    self.racks_lost = previous_record.racks_lost
 
         super().save(*args, **kwargs)
 

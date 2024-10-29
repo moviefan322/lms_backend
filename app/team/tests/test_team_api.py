@@ -702,6 +702,131 @@ class AdminTeamPlayerApiTests(TestCase):
         self.assertEqual(new_team_player.racks_lost, 30)
         self.assertEqual(team_player1.handicap, 7)
 
+    def test_player_retains_rating_in_new_season(self):
+        """Test that a player retains their rating in a new season."""
+        team = create_team(self.league)
+        season = create_season(self.league)
+        player = create_player()
+
+        team_season = create_team_season(
+            team, season, captain=create_player())
+        create_team_player(
+            team_season,
+            player,
+            handicap=7,
+            wins=5,
+            losses=10,
+            racks_won=25,
+            racks_lost=30
+        )
+
+        new_season = create_season(self.league, year=2022)
+        new_team_season = create_team_season(
+            team, new_season, captain=create_player())
+
+        payload = {
+            'player': player.id,
+        }
+        res = self.client.post(
+            team_player_list_url(self.league.id, new_season.id, new_team_season.id),
+            payload
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        new_team_player = TeamPlayer.objects.get(id=res.data['id'])
+        self.assertEqual(new_team_player.handicap, 7)
+        self.assertEqual(new_team_player.wins, 0)
+        self.assertEqual(new_team_player.losses, 0)
+        self.assertEqual(new_team_player.racks_won, 0)
+        self.assertEqual(new_team_player.racks_lost, 0)
+
+    def test_player_retains_latest_rating_across_seasons(self):
+        """Test that a player retains the latest handicap when starting a new season."""
+        team = create_team(self.league)
+        player = create_player()
+
+        season1 = create_season(self.league, year=2020)
+        team_season1 = create_team_season(team, season1, captain=create_player())
+        create_team_player(team_season1, player, handicap=5)
+
+        season2 = create_season(self.league, year=2021)
+        team_season2 = create_team_season(team, season2, captain=create_player())
+        team_player2 = create_team_player(team_season2, player)
+
+        payload = {'handicap': 8}
+        url = team_player_detail_url(
+            self.league.id, season2.id, team_season2.id, team_player2.id)
+        self.client.patch(url, payload)
+
+        season3 = create_season(self.league, year=2022)
+        team_season3 = create_team_season(team, season3, captain=create_player())
+
+        payload = {'player': player.id}
+        res = self.client.post(
+            team_player_list_url(self.league.id, season3.id, team_season3.id),
+            payload
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        new_team_player = TeamPlayer.objects.get(id=res.data['id'])
+        self.assertEqual(new_team_player.handicap, 8)
+
+    def test_overwrite_rating_across_seasons(self):
+        """Test that a player retains the latest handicap when starting a new season."""
+        team = create_team(self.league)
+        player = create_player()
+
+        season1 = create_season(self.league, year=2020)
+        team_season1 = create_team_season(team, season1, captain=create_player())
+        create_team_player(team_season1, player, handicap=5)
+
+        season2 = create_season(self.league, year=2021)
+        team_season2 = create_team_season(team, season2, captain=create_player())
+        team_player2 = create_team_player(team_season2, player)
+
+        payload = {'handicap': 8}
+        url = team_player_detail_url(
+            self.league.id, season2.id, team_season2.id, team_player2.id)
+        self.client.patch(url, payload)
+
+        season3 = create_season(self.league, year=2022)
+        team_season3 = create_team_season(team, season3, captain=create_player())
+
+        payload = {'player': player.id, 'handicap': 6}
+        res = self.client.post(
+            team_player_list_url(self.league.id, season3.id, team_season3.id),
+            payload
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        new_team_player = TeamPlayer.objects.get(id=res.data['id'])
+        self.assertEqual(new_team_player.handicap, 6)
+
+    def test_player_association_with_correct_team_and_season(self):
+        """Test that the new TeamPlayer entry corresponds to the correct team and player."""
+        team1 = create_team(self.league)
+        team2 = create_team(self.league)
+        player = create_player()
+
+        season = create_season(self.league)
+        team_season1 = create_team_season(team1, season, captain=create_player())
+        team_player1 = create_team_player(team_season1, player, handicap=7)
+
+        new_season = create_season(self.league, year=2022)
+        new_team_season = create_team_season(team2, new_season, captain=create_player())
+
+        payload = {'player': player.id}
+        res = self.client.post(
+            team_player_list_url(self.league.id, new_season.id, new_team_season.id),
+            payload
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        new_team_player = TeamPlayer.objects.get(id=res.data['id'])
+        self.assertEqual(new_team_player.player, player)
+        self.assertEqual(new_team_player.team_season, new_team_season)
+        self.assertEqual(new_team_player.handicap, 7)
+
 
 class AdditionAdminLeagueApiTests(TestCase):
     """Test authenticated team API access"""
