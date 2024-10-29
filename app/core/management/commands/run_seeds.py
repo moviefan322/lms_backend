@@ -166,9 +166,10 @@ class Command(BaseCommand):
             # Create team players and skip duplicates
             for index, player in enumerate(players):
                 team_season = team_seasons[index % len(team_seasons)]
-                if not TeamPlayer.objects.filter(team_season=team_season, player=player).exists():
-                    TeamPlayer.objects.create(team_season=team_season, player=player)
-
+                if not TeamPlayer.objects.filter(
+                        team_season=team_season, player=player).exists():
+                    TeamPlayer.objects.create(
+                        team_season=team_season, player=player)
 
             self.stdout.write(self.style.SUCCESS(
                 'Database seeded successfully!'))

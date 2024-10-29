@@ -728,7 +728,8 @@ class AdminTeamPlayerApiTests(TestCase):
             'player': player.id,
         }
         res = self.client.post(
-            team_player_list_url(self.league.id, new_season.id, new_team_season.id),
+            team_player_list_url(
+                self.league.id, new_season.id, new_team_season.id),
             payload
         )
 
@@ -741,16 +742,19 @@ class AdminTeamPlayerApiTests(TestCase):
         self.assertEqual(new_team_player.racks_lost, 0)
 
     def test_player_retains_latest_rating_across_seasons(self):
-        """Test that a player retains the latest handicap when starting a new season."""
+        """Test that a player retains the
+        latest handicap when starting a new season."""
         team = create_team(self.league)
         player = create_player()
 
         season1 = create_season(self.league, year=2020)
-        team_season1 = create_team_season(team, season1, captain=create_player())
+        team_season1 = create_team_season(
+            team, season1, captain=create_player())
         create_team_player(team_season1, player, handicap=5)
 
         season2 = create_season(self.league, year=2021)
-        team_season2 = create_team_season(team, season2, captain=create_player())
+        team_season2 = create_team_season(
+            team, season2, captain=create_player())
         team_player2 = create_team_player(team_season2, player)
 
         payload = {'handicap': 8}
@@ -759,7 +763,8 @@ class AdminTeamPlayerApiTests(TestCase):
         self.client.patch(url, payload)
 
         season3 = create_season(self.league, year=2022)
-        team_season3 = create_team_season(team, season3, captain=create_player())
+        team_season3 = create_team_season(
+            team, season3, captain=create_player())
 
         payload = {'player': player.id}
         res = self.client.post(
@@ -772,16 +777,19 @@ class AdminTeamPlayerApiTests(TestCase):
         self.assertEqual(new_team_player.handicap, 8)
 
     def test_overwrite_rating_across_seasons(self):
-        """Test that a player retains the latest handicap when starting a new season."""
+        """Test that a player retains the latest
+        handicap when starting a new season."""
         team = create_team(self.league)
         player = create_player()
 
         season1 = create_season(self.league, year=2020)
-        team_season1 = create_team_season(team, season1, captain=create_player())
+        team_season1 = create_team_season(
+            team, season1, captain=create_player())
         create_team_player(team_season1, player, handicap=5)
 
         season2 = create_season(self.league, year=2021)
-        team_season2 = create_team_season(team, season2, captain=create_player())
+        team_season2 = create_team_season(
+            team, season2, captain=create_player())
         team_player2 = create_team_player(team_season2, player)
 
         payload = {'handicap': 8}
@@ -790,7 +798,8 @@ class AdminTeamPlayerApiTests(TestCase):
         self.client.patch(url, payload)
 
         season3 = create_season(self.league, year=2022)
-        team_season3 = create_team_season(team, season3, captain=create_player())
+        team_season3 = create_team_season(
+            team, season3, captain=create_player())
 
         payload = {'player': player.id, 'handicap': 6}
         res = self.client.post(
@@ -803,21 +812,25 @@ class AdminTeamPlayerApiTests(TestCase):
         self.assertEqual(new_team_player.handicap, 6)
 
     def test_player_association_with_correct_team_and_season(self):
-        """Test that the new TeamPlayer entry corresponds to the correct team and player."""
+        """Test that the new TeamPlayer entry
+        corresponds to the correct team and player."""
         team1 = create_team(self.league)
         team2 = create_team(self.league)
         player = create_player()
 
         season = create_season(self.league)
-        team_season1 = create_team_season(team1, season, captain=create_player())
-        team_player1 = create_team_player(team_season1, player, handicap=7)
+        team_season1 = create_team_season(
+            team1, season, captain=create_player())
+        create_team_player(team_season1, player, handicap=7)
 
         new_season = create_season(self.league, year=2022)
-        new_team_season = create_team_season(team2, new_season, captain=create_player())
+        new_team_season = create_team_season(
+            team2, new_season, captain=create_player())
 
         payload = {'player': player.id}
         res = self.client.post(
-            team_player_list_url(self.league.id, new_season.id, new_team_season.id),
+            team_player_list_url(
+                self.league.id, new_season.id, new_team_season.id),
             payload
         )
 

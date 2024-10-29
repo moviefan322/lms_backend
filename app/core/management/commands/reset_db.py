@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 import psycopg2
 from django.db import connection
 
+
 class Command(BaseCommand):
     help = "Resets the development database."
 
@@ -19,12 +20,14 @@ class Command(BaseCommand):
             host=db_host,
             port=db_port,
         )
-        conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        conn.set_isolation_level(
+            psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
         with conn.cursor() as cursor:
             # Terminate connections to the target database
             cursor.execute(
-                f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{db_name}' AND pid <> pg_backend_pid();"
+                f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity\
+                    WHERE datname = '{db_name}' AND pid <> pg_backend_pid();"
             )
 
             # Drop and recreate the target database
@@ -33,4 +36,5 @@ class Command(BaseCommand):
 
         conn.close()
 
-        self.stdout.write(self.style.SUCCESS(f"Successfully reset the '{db_name}' database."))
+        self.stdout.write(self.style.SUCCESS(
+            f"Successfully reset the '{db_name}' database."))

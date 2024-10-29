@@ -246,7 +246,8 @@ class TeamPlayer(models.Model):
                 previous_record.is_active = False
                 previous_record.save()
 
-                if previous_record.team_season.season == self.team_season.season:
+                sts = self.team_season.season
+                if previous_record.team_season.season == sts:
                     self.wins = previous_record.wins
                     self.losses = previous_record.losses
                     self.racks_won = previous_record.racks_won

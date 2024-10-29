@@ -29,13 +29,12 @@ class TeamPlayerSerializer(serializers.ModelSerializer):
 
         player = validated_data.get('player')
         if 'handicap' not in validated_data:
-            # Find the last TeamPlayer instance for the player
-            last_record = TeamPlayer.objects.filter(player=player).order_by('-created_at').first()
-            # If there’s a previous record, set the handicap to the last handicap, else default to 3
-            validated_data['handicap'] = last_record.handicap if last_record else 3
+            last_record = TeamPlayer.objects.filter(
+                player=player).order_by('-created_at').first()
+            validated_data[
+                'handicap'] = last_record.handicap if last_record else 3
 
         return super().create(validated_data)
-
 
 
 class TeamSeasonSerializer(serializers.ModelSerializer):
