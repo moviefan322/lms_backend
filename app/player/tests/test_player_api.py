@@ -155,6 +155,59 @@ class AdminPlayerApiTests(TestCase):
         )
         self.client.force_authenticate(self.admin_user)
 
+    def test_retrieve_players_by_league(self):
+        """Test retrieving players that belong to a specific league"""
+        league1 = create_league(admin_user=self.admin_user, name='League 1')
+        league2 = create_league(admin_user=self.admin_user, name='League 2')
+
+        season1 = create_season(league=league1)
+        season2 = create_season(league=league2)
+
+        team1 = create_team(league=league1)
+        team2 = create_team(league=league2)
+
+        captain1 = create_player(name='Captain 1')
+        team_season1 = create_team_season(
+            team=team1, season=season1, captain=captain1)
+        team_season2 = create_team_season(
+            team=team2, season=season2, captain=create_player())
+
+        player1 = create_player(name='Player 1')
+        player2 = create_player(name='Player 2')
+        create_team_player(player1, team_season1)
+        create_team_player(player2, team_season2)
+
+        url = reverse('player:player-by-league',
+                      kwargs={'league_id': league1.id})
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 2)
+        self.assertEqual(res.data[1]['name'], player1.name)
+        self.assertEqual(res.data[0]['name'], captain1.name)
+
+    def test_retrieve_players_by_league_no_players(self):
+        """Test retrieving players when there
+        are no players in the specified league"""
+        league = create_league(admin_user=self.admin_user, name='Empty League')
+
+        url = reverse('player:player-by-league', args=[league.id])
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 0)
+
+    def test_retrieve_players_by_league_unauthorized(self):
+        """Test that an unauthorized user cannot retrieve players by league"""
+        league = create_league(admin_user=self.admin_user,
+                               name='Unauthorized League')
+        self.client.logout()
+
+        url = reverse('player:player-by-league', args=[league.id])
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
     def test_create_player_successful(self):
         """Test that an admin user can create a player"""
         league = create_league(self.admin_user)

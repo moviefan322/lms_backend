@@ -41,11 +41,19 @@ class TeamSeasonSerializer(serializers.ModelSerializer):
     """Serializer for the TeamSeason model."""
     team_players = TeamPlayerSerializer(many=True, read_only=True)
     name = serializers.CharField(required=False)
+    captain = serializers.PrimaryKeyRelatedField(
+        queryset=Player.objects.all(), required=False)
+    captain_name = serializers.SerializerMethodField()
 
     class Meta:
         model = TeamSeason
-        fields = ['id', 'name', 'team', 'season', 'captain', 'team_players']
+        fields = ['id', 'name', 'team', 'season',
+                  'captain', 'captain_name', 'team_players']
         read_only_fields = ['id', 'wins', 'losses', 'games_won', 'games_lost']
+
+    def get_captain_name(self, obj):
+        """Fetch captain's name if captain exists."""
+        return obj.captain.name if obj.captain else None
 
     def create(self, validated_data):
         """Override the create method to handle defaults."""

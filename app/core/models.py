@@ -132,6 +132,22 @@ class Team(models.Model):
         return self.name
 
 
+class Player(models.Model):
+    """Player object."""
+    name = models.CharField(max_length=255)
+    teams = models.ManyToManyField(
+        'TeamSeason',
+        through='TeamPlayer',
+        related_name='players',
+        blank=True
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
 class TeamSeason(models.Model):
     """Intermediary model for tracking team stats in a specific season."""
     team = models.ForeignKey(
@@ -147,7 +163,7 @@ class TeamSeason(models.Model):
         'Player',
         on_delete=models.CASCADE,
         related_name='teams_captained',
-        null=False
+        null=True
     )
     wins = models.IntegerField(default=0)
     losses = models.IntegerField(default=0)
@@ -178,22 +194,6 @@ class TeamSeason(models.Model):
 
     def __str__(self):
         return f'{self.team.name} in {self.season.name} ({self.season.year})'
-
-
-class Player(models.Model):
-    """Player object."""
-    name = models.CharField(max_length=255)
-    teams = models.ManyToManyField(
-        'TeamSeason',
-        through='TeamPlayer',
-        related_name='players',
-        blank=True
-    )
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.name
 
 
 class TeamPlayer(models.Model):
