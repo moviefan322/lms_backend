@@ -1,9 +1,11 @@
 from rest_framework import viewsets, status
+from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 
+from .services import ScheduleService
 from core.models import (
     League,
     Season,
@@ -18,6 +20,28 @@ from core.models import (
 from league import serializers
 from team.serializers import TeamSeasonSerializer
 from .permissions import IsAdminOrLeagueMember
+
+
+class GenerateScheduleView(APIView):
+    def post(self, request, schedule_id):
+        try:
+            schedule = Schedule.objects.get(id=schedule_id)
+            service = ScheduleService(schedule)
+            service.generate_schedule()
+            return Response(
+                {"message": "Schedule generated successfully"},
+                status=status.HTTP_201_CREATED
+            )
+        except Schedule.DoesNotExist:
+            return Response(
+                {"error": "Schedule not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class GameViewSet(viewsets.ModelViewSet):
@@ -97,8 +121,10 @@ class MatchNightViewSet(viewsets.ModelViewSet):
         return obj
 
 
-class ScheduleViewSet(viewsets.ViewSet):
+class ScheduleViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminOrLeagueMember]
+    queryset = Schedule.objects.all()
+    serializer_class = serializers.ScheduleSerializer
 
     def get_schedule(self, season_id):
         """Retrieve the schedule for the given season_id."""
@@ -106,46 +132,10 @@ class ScheduleViewSet(viewsets.ViewSet):
 
     def create(self, request, league_id=None, season_id=None):
         season = Season.objects.get(id=season_id)
-        serializer = serializers.ScheduleSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(season=season)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def retrieve(self, request, league_id=None, season_id=None):
-        schedule = self.get_schedule(season_id)
-        if not schedule:
-            return Response(
-                {"detail": "Schedule not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        serializer = serializers.ScheduleSerializer(schedule)
-        return Response(serializer.data)
-
-    def update(self, request, league_id=None, season_id=None, partial=False):
-        schedule = self.get_schedule(season_id)
-        if not schedule:
-            return Response(
-                {"detail": "Schedule not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        serializer = serializers.ScheduleSerializer(
-            schedule, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
-
-    def partial_update(self, request, league_id=None, season_id=None):
-        return self.update(request, league_id, season_id, partial=True)
-
-    def destroy(self, request, league_id=None, season_id=None):
-        schedule = self.get_schedule(season_id)
-        if not schedule:
-            return Response(
-                {"detail": "Schedule not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        schedule.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SeasonViewSet(viewsets.ModelViewSet):

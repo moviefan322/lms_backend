@@ -35,17 +35,13 @@ router.register(
 router.register(r'(?P<league_id>\d+)/teams',
                 TeamViewSet, basename='team')
 
+router.register(r'(?P<league_id>\d+)/seasons/(?P<season_id>\d+)/schedule',
+                views.ScheduleViewSet, basename='schedule')
+
 app_name = 'league'
 
 urlpatterns = [
     path('', include(router.urls)),
-    path(
-        '<int:league_id>/seasons/<int:season_id>/schedule/',
-        views.ScheduleViewSet.as_view({
-            'post': 'create',
-            'get': 'retrieve',
-            'put': 'update',
-            'patch': 'partial_update',
-            'delete': 'destroy'
-        }), name='season-schedule'),
+    path('schedule/<int:schedule_id>/generate/',
+         views.GenerateScheduleView.as_view(), name='generate-schedule'),
 ]

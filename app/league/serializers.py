@@ -52,6 +52,8 @@ class ScheduleSerializer(serializers.ModelSerializer):
     matchnights = MatchNightSerializer(many=True, read_only=True)
     default_start_time = serializers.TimeField(
         format='%H:%M:%S', required=False)
+    start_date = serializers.DateField(required=True)
+    num_weeks = serializers.IntegerField(required=True)
 
     class Meta:
         model = Schedule
