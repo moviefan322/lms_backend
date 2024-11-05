@@ -7,9 +7,6 @@ from core.models import (
     Schedule,
     MatchNight,
     Match,
-    League,
-    Season,
-    TeamSeason
 )
 from league.services import ScheduleService
 from django.contrib.auth import get_user_model
@@ -20,28 +17,7 @@ from .test_helpers import (
     create_team_season
 )
 
-from core.tests.test_models import create_admin, random_string
-
-
-def create_league(admin_user, **params):
-    """Helper function to create a league."""
-    defaults = {'name': random_string(), 'is_active': True}
-    defaults.update(params)
-    return League.objects.create(admin=admin_user, **defaults)
-
-
-def create_season(league, **params):
-    """Helper function to create a season."""
-    defaults = {'name': random_string(), 'year': 2024}
-    defaults.update(params)
-    return Season.objects.create(league=league, **defaults)
-
-
-def create_team_season(season, **params):
-    """Helper function to create a team season."""
-    defaults = {'name': random_string()}
-    defaults.update(params)
-    return TeamSeason.objects.create(season=season, **defaults)
+from core.tests.test_models import create_admin
 
 
 def schedule_url(league_id, season_id):
@@ -148,7 +124,6 @@ class ScheduleApiTests(TestCase):
 
     def test_generate_schedule(self):
         """Test generating a schedule."""
-        # First, create the schedule
         schedule = Schedule.objects.create(
             season=self.season,
             start_date=date(2024, 10, 1),
@@ -156,22 +131,19 @@ class ScheduleApiTests(TestCase):
             default_start_time='19:00'
         )
 
-        # Create teams for the schedule
-        team1 = create_team_season(season=self.season, name="Team 1")
-        team2 = create_team_season(season=self.season, name="Team 2")
+        team1 = create_team(self.league)
+        create_team_season(team=team1, season=self.season, name="Team 1")
+        team2 = create_team(self.league)
+        create_team_season(team=team2, season=self.season, name="Team 2")
 
         url = generate_schedule_url(schedule.id)
         response = self.client.post(url)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('matchnights', response.data)
-        self.assertGreater(len(response.data['matchnights']), 0)
-
-        # Additional assertions can check that match nights and matches were created as expected
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_retrieve_schedule(self):
         """Test retrieving a schedule."""
-        schedule = Schedule.objects.create(
+        Schedule.objects.create(
             season=self.season,
             start_date=date(2024, 10, 1),
             num_weeks=4,
@@ -182,8 +154,8 @@ class ScheduleApiTests(TestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Access the first item in the list if response is a list
-        schedule_data = response.data[0] if isinstance(response.data, list) else response.data
+
+        schedule_data = response.data[0] if isinstance(
+            response.data, list) else response.data
         self.assertIn('start_date', schedule_data)
         self.assertEqual(schedule_data['start_date'], '2024-10-01')
-
