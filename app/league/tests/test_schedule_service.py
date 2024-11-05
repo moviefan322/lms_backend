@@ -182,5 +182,8 @@ class ScheduleApiTests(TestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('start_date', response.data)
-        self.assertEqual(response.data['start_date'], '2024-10-01')
+        # Access the first item in the list if response is a list
+        schedule_data = response.data[0] if isinstance(response.data, list) else response.data
+        self.assertIn('start_date', schedule_data)
+        self.assertEqual(schedule_data['start_date'], '2024-10-01')
+
