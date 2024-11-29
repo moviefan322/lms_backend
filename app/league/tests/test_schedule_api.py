@@ -476,6 +476,16 @@ class AdminScheduleApiTests(TestCase):
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+    
+    def test_admin_view_non_existent_schedule(self):
+        """Test that an admin user gets 404 when no schedule exists."""
+        # Ensure no schedule exists for the season
+        url = schedule_url(self.league.id, self.season.id)
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, None)
+
 
 
 class AdminMatchNightApiTests(TestCase):

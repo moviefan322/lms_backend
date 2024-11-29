@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, NotFound
 from django.shortcuts import get_object_or_404
 
 from .services import ScheduleService
@@ -127,15 +127,48 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.ScheduleSerializer
 
     def get_schedule(self, season_id):
-        """Retrieve the schedule for the given season_id."""
+        """Retrieve the schedule for the given season_id or return None."""
         return Schedule.objects.filter(season_id=season_id).first()
 
     def create(self, request, league_id=None, season_id=None):
-        season = Season.objects.get(id=season_id)
+        """Create a schedule only if one doesn't already exist for the season."""
+        season = get_object_or_404(Season, id=season_id)
+
+        if hasattr(season, 'schedule'):  # One-to-one check
+            return Response(
+                {"detail": "A schedule already exists for this season."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(season=season)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def retrieve(self, request, pk=None, league_id=None, season_id=None):
+        """Retrieve the schedule for the given season or return 404."""
+        season = get_object_or_404(Season, id=season_id)
+
+        # Use the one-to-one reverse relationship
+        schedule = self.get_schedule(season.id)
+        if not schedule:
+            raise NotFound("No schedule found for this season.")
+
+        serializer = self.get_serializer(schedule)
+        return Response(serializer.data)
+
+    def list(self, request, league_id=None, season_id=None):
+        """Return only the single schedule for the season."""
+        season = get_object_or_404(Season, id=season_id)
+
+        # Use the one-to-one reverse relationship
+        schedule = self.get_schedule(season.id)
+        if not schedule:
+            return Response(None, status=status.HTTP_200_OK)
+
+        serializer = self.get_serializer(schedule)
+        return Response(serializer.data)
+
 
 
 class SeasonViewSet(viewsets.ModelViewSet):
