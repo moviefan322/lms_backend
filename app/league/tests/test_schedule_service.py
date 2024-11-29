@@ -36,7 +36,8 @@ class ScheduleApiTests(APITestCase):
     def setUp(self):
         self.client = APIClient()
         self.league = League.objects.create(name="Test League")
-        self.season = Season.objects.create(league=self.league, name="Test Season")
+        self.season = Season.objects.create(
+            league=self.league, name="Test Season")
         self.schedule = Schedule.objects.create(
             season=self.season,
             start_date=date(2024, 12, 20),
@@ -50,7 +51,8 @@ class ScheduleApiTests(APITestCase):
 
     def test_schedule_includes_matchnights(self):
         """Test that the schedule includes matchnights in the response."""
-        url = f"/api/league/{self.league.id}/seasons/{self.season.id}/schedule/"
+        url = f"/api/league/{self.league.id}/seasons\
+            /{self.season.id}/schedule/"
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
@@ -72,25 +74,25 @@ class ScheduleApiTests(APITestCase):
         )
 
         # Fetch the schedule
-        fetch_url = f"/api/league/{self.league.id}/seasons/{self.season.id}/schedule/"
+        fetch_url = f"/api/league/{self.league.id}/seasons\
+            /{self.season.id}/schedule/"
         fetch_response = self.client.get(fetch_url)
 
         self.assertEqual(fetch_response.status_code, 200)
         schedule_data = fetch_response.data
 
-        # Validate schedule fields
         self.assertEqual(schedule_data["id"], self.schedule.id)
         self.assertEqual(schedule_data["start_date"], "2024-12-20")
         self.assertEqual(schedule_data["num_weeks"], 2)
         self.assertEqual(schedule_data["default_start_time"], "20:22:00")
 
-        # Validate matchnights
         matchnights = schedule_data.get("matchnights", [])
-        self.assertGreaterEqual(len(matchnights), 2)  # Should have 2 match nights
+        self.assertGreaterEqual(len(matchnights), 2)
         for matchnight in matchnights:
             self.assertIn("date", matchnight)
-            self.assertIn("matches", matchnight)  # Assuming match nights include matches
+            self.assertIn("matches", matchnight)
             self.assertGreaterEqual(len(matchnight["matches"]), 1)
+
 
 class ScheduleServiceTests(TestCase):
     def setUp(self):
@@ -160,7 +162,7 @@ class ScheduleServiceTests(TestCase):
                                 instead of {self.schedule.num_weeks}")
 
 
-class ScheduleApiTests(TestCase):
+class ScheduleApiTests2(TestCase):
     """Tests for the Schedule API."""
 
     def setUp(self):
