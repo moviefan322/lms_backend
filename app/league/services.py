@@ -26,8 +26,9 @@ class ScheduleService:
 
         while current_week < self.num_weeks:
             match_night_date = self.get_next_match_date(current_week)
-            match_night, _ = MatchNight.objects.get_or_create(
+            match_night, created = MatchNight.objects.get_or_create(
                 schedule=self.schedule, date=match_night_date)
+            print(f"MatchNight created: {match_night} (created={created})")
 
             # Alternate home/away between list1 and list2 each week
             if current_week % 2 == 0:

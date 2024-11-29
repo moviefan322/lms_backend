@@ -1,12 +1,14 @@
 from django.urls import reverse
 from django.test import TestCase
 from rest_framework import status
-from rest_framework.test import APIClient
-from datetime import date
+from rest_framework.test import APIClient, APITestCase
+from datetime import date, time
 from core.models import (
     Schedule,
     MatchNight,
     Match,
+    Season,
+    League
 )
 from league.services import ScheduleService
 from django.contrib.auth import get_user_model
@@ -29,6 +31,66 @@ def generate_schedule_url(schedule_id):
     """Helper function to get the generate schedule URL."""
     return reverse('league:generate-schedule', args=[schedule_id])
 
+
+class ScheduleApiTests(APITestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.league = League.objects.create(name="Test League")
+        self.season = Season.objects.create(league=self.league, name="Test Season")
+        self.schedule = Schedule.objects.create(
+            season=self.season,
+            start_date=date(2024, 12, 20),
+            num_weeks=20,
+            default_start_time=time(20, 22)
+        )
+        self.match_night = MatchNight.objects.create(
+            schedule=self.schedule,
+            date=date(2024, 12, 22)
+        )
+
+    def test_schedule_includes_matchnights(self):
+        """Test that the schedule includes matchnights in the response."""
+        url = f"/api/league/{self.league.id}/seasons/{self.season.id}/schedule/"
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        schedule_data = response.data
+        self.assertIn("matchnights", schedule_data)
+        self.assertEqual(len(schedule_data["matchnights"]), 1)
+        self.assertEqual(schedule_data["matchnights"][0]["date"], "2024-12-22")
+
+    def test_generate_schedule_and_validate_response(self):
+        """Test generating a schedule and validating the response."""
+        # Generate the schedule
+        generate_url = f"/api/schedule/{self.schedule.id}/generate/"
+        generate_response = self.client.post(generate_url)
+
+        self.assertEqual(generate_response.status_code, 201)
+        self.assertEqual(
+            generate_response.data.get("message"),
+            "Schedule generated successfully"
+        )
+
+        # Fetch the schedule
+        fetch_url = f"/api/league/{self.league.id}/seasons/{self.season.id}/schedule/"
+        fetch_response = self.client.get(fetch_url)
+
+        self.assertEqual(fetch_response.status_code, 200)
+        schedule_data = fetch_response.data
+
+        # Validate schedule fields
+        self.assertEqual(schedule_data["id"], self.schedule.id)
+        self.assertEqual(schedule_data["start_date"], "2024-12-20")
+        self.assertEqual(schedule_data["num_weeks"], 2)
+        self.assertEqual(schedule_data["default_start_time"], "20:22:00")
+
+        # Validate matchnights
+        matchnights = schedule_data.get("matchnights", [])
+        self.assertGreaterEqual(len(matchnights), 2)  # Should have 2 match nights
+        for matchnight in matchnights:
+            self.assertIn("date", matchnight)
+            self.assertIn("matches", matchnight)  # Assuming match nights include matches
+            self.assertGreaterEqual(len(matchnight["matches"]), 1)
 
 class ScheduleServiceTests(TestCase):
     def setUp(self):

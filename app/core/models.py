@@ -273,7 +273,7 @@ class Schedule(models.Model):
 
 class MatchNight(models.Model):
     schedule = models.ForeignKey(
-        Schedule, on_delete=models.CASCADE, related_name='match_nights')
+        Schedule, on_delete=models.CASCADE, related_name='matchnights')
     date = models.DateField()
     start_time = models.TimeField(null=True, blank=True)
     status = models.CharField(max_length=50, default='Scheduled')
