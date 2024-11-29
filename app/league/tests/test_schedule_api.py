@@ -476,7 +476,7 @@ class AdminScheduleApiTests(TestCase):
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-    
+
     def test_admin_view_non_existent_schedule(self):
         """Test that an admin user gets 404 when no schedule exists."""
         # Ensure no schedule exists for the season
@@ -487,7 +487,8 @@ class AdminScheduleApiTests(TestCase):
         self.assertEqual(res.data, None)
 
     def test_admin_prevents_duplicate_schedule(self):
-        """Test that creating a second schedule for the same season is not allowed."""
+        """Test that creating a second schedule \
+            for the same season is not allowed."""
         Schedule.objects.create(
             season=self.season,
             start_date=date(2024, 10, 1),
@@ -505,7 +506,10 @@ class AdminScheduleApiTests(TestCase):
         res = self.client.post(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(res.data['detail'], "A schedule already exists for this season.")
+        self.assertEqual(
+            res.data['detail'],
+            "A schedule already exists for this season."
+        )
 
 
 class AdminMatchNightApiTests(TestCase):

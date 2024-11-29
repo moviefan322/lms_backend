@@ -131,7 +131,8 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         return Schedule.objects.filter(season_id=season_id).first()
 
     def create(self, request, league_id=None, season_id=None):
-        """Create a schedule only if one doesn't already exist for the season."""
+        """Create a schedule only if one doesn't \
+        already exist for the season."""
         season = get_object_or_404(Season, id=season_id)
 
         if hasattr(season, 'schedule'):  # One-to-one check
@@ -168,7 +169,6 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(schedule)
         return Response(serializer.data)
-
 
 
 class SeasonViewSet(viewsets.ModelViewSet):

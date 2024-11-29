@@ -65,7 +65,8 @@ class ScheduleSerializer(serializers.ModelSerializer):
         """Ensure only one schedule exists per season."""
         season = data.get('season')
         if Schedule.objects.filter(season=season).exists():
-            raise serializers.ValidationError("A schedule already exists for this season.")
+            raise serializers.ValidationError(
+                "A schedule already exists for this season.")
         return data
 
 
