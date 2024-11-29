@@ -61,6 +61,13 @@ class ScheduleSerializer(serializers.ModelSerializer):
                   'num_weeks', 'default_start_time', 'matchnights']
         read_only_fields = ['id']
 
+    def validate(self, data):
+        """Ensure only one schedule exists per season."""
+        season = data.get('season')
+        if Schedule.objects.filter(season=season).exists():
+            raise serializers.ValidationError("A schedule already exists for this season.")
+        return data
+
 
 class SeasonSerializer(serializers.ModelSerializer):
     """Serializer for the Season model."""

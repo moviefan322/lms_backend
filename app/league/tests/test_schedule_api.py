@@ -486,6 +486,26 @@ class AdminScheduleApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, None)
 
+    def test_admin_prevents_duplicate_schedule(self):
+        """Test that creating a second schedule for the same season is not allowed."""
+        Schedule.objects.create(
+            season=self.season,
+            start_date=date(2024, 10, 1),
+            num_weeks=4,
+            default_start_time='19:00'
+        )
+
+        payload = {
+            'start_date': date(2024, 11, 1),
+            'num_weeks': 6,
+            'default_start_time': '20:00'
+        }
+
+        url = schedule_url(self.league.id, self.season.id)
+        res = self.client.post(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(res.data['detail'], "A schedule already exists for this season.")
 
 
 class AdminMatchNightApiTests(TestCase):
