@@ -26,11 +26,15 @@ class MatchSerializer(serializers.ModelSerializer):
     match_night = serializers.PrimaryKeyRelatedField(
         queryset=MatchNight.objects.all())
     match_time = serializers.TimeField(required=False)
+    away_team_name = serializers.StringRelatedField(
+        source='away_team', read_only=True)
+    home_team_name = serializers.StringRelatedField(
+        source='home_team', read_only=True)
 
     class Meta:
         model = Match
         fields = [
-            'id', 'match_night', 'home_team', 'away_team', 'match_time',
+            'id', 'match_night', 'home_team', 'home_team_name', 'away_team', 'away_team_name', 'match_time',
             'home_score', 'away_score', 'status', 'home_race_to',
             'away_race_to', 'team_snapshot'
         ]
