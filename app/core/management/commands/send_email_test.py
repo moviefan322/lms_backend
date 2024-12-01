@@ -12,7 +12,7 @@ class Command(BaseCommand):
                 "Welcome to Our App",
                 "You have been added to our system.",
                 "your-email@example.com",
-                recipient,
+                [recipient],
                 fail_silently=False,
             )
             self.stdout.write(self.style.SUCCESS("Invitation emails sent!"))

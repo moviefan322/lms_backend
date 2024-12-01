@@ -33,7 +33,6 @@ class CommandTests(SimpleTestCase):
         self.assertEqual(patched_check.call_count, 6)
         patched_check.assert_called_with(databases=['default'])
 
-
     @patch("django.core.mail.send_mail")
     def test_send_invitation_emails_failure(self, mock_send_mail):
         """Test failure when sending invitation emails."""
@@ -48,7 +47,6 @@ class CommandTests(SimpleTestCase):
             "Welcome to Our App",
             "You have been added to our system.",
             "your-email@example.com",
-            "philipscottneumann0@gmail.com",
+            "[philipscottneumann0@gmail.com]",
             fail_silently=False,
         )
-
