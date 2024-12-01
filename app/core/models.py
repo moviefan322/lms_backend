@@ -193,7 +193,7 @@ class TeamSeason(models.Model):
             )
 
     def __str__(self):
-        return f'{self.team.name} in {self.season.name} ({self.season.year})'
+        return self.team.name
 
 
 class TeamPlayer(models.Model):
