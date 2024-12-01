@@ -21,6 +21,8 @@ services:
       - DB_PASS=changeme
       - DEV=true
       - DEBUG=1
+      - EMAIL_HOST_USER=lms322.do.not.reply@gmail.com
+      - EMAIL_HOST_PASSWORD=fkzt vzso pykc hbsd
     depends_on:
       - db
 
