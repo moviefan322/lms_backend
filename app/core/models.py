@@ -153,7 +153,8 @@ class Player(models.Model):
 
     def clean(self):
         if self.email and User.objects.filter(email=self.email).exists():
-            raise ValidationError(f"A user with email '{self.email}' already exists.")
+            raise ValidationError(
+                f"A user with email '{self.email}' already exists.")
 
     def __str__(self):
         return self.name

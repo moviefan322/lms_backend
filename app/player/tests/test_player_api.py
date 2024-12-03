@@ -334,7 +334,7 @@ class AdminPlayerApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         player = Player.objects.get(id=res.data['id'])
         self.assertEqual(player.email, payload['email'])
-    
+
     def test_two_players_with_same_email_cannot_be_created(self):
         """Test that two players with the same email cannot be created"""
         create_player(name='Bob', email='bob@example.com')
