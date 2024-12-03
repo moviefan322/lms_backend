@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import Player
+from core.models import Player, User
 
 
 class PlayerSerializer(serializers.ModelSerializer):
@@ -7,8 +7,15 @@ class PlayerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Player
-        fields = ['id', 'name', 'is_active']
+        fields = ['id', 'email', 'name', 'is_active']
         read_only_fields = ['id', 'user']
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                "A user with this email already exists."
+            )
+        return value
 
 
 class PlayerDetailSerializer(PlayerSerializer):
@@ -16,7 +23,7 @@ class PlayerDetailSerializer(PlayerSerializer):
 
     class Meta:
         model = Player
-        fields = ['id', 'name', 'is_active']
+        fields = ['id', 'email', 'name', 'is_active']
         read_only_fields = ['id']
 
     def get_teams(self, obj):

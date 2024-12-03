@@ -11,6 +11,7 @@ from rest_framework.test import APIClient
 
 from core.models import (
     Player,
+    User,
     League,
     Team, Season,
     TeamSeason,
@@ -320,6 +321,46 @@ class AdminPlayerApiTests(TestCase):
         self.assertEqual(player.name, payload['name'])
         self.assertFalse(player.is_active)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_player_with_email_can_be_created(self):
+        """Test creating a player with an email"""
+        payload = {
+            'name': 'Test Player',
+            'email': 'bob@example.com',
+        }
+
+        res = self.client.post(PLAYER_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        player = Player.objects.get(id=res.data['id'])
+        self.assertEqual(player.email, payload['email'])
+    
+    def test_two_players_with_same_email_cannot_be_created(self):
+        """Test that two players with the same email cannot be created"""
+        create_player(name='Bob', email='bob@example.com')
+        payload = {
+            'name': 'Test Player',
+            'email': 'bob@example.com',
+        }
+
+        res = self.client.post(PLAYER_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_player_with_email_creates_user(self):
+        """Test that creating a player with an email creates a user"""
+        payload = {
+            'name': 'Test Player',
+            'email': 'bob@example.com',
+        }
+
+        res = self.client.post(PLAYER_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        player = Player.objects.get(id=res.data['id'])
+        user = User.objects.get(email=player.email)
+        self.assertIsNotNone(player.user)
+        self.assertEqual(user.player_profile, player)
 
 
 class AdditionalAdminPlayerApiTests(TestCase):

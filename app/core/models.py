@@ -3,6 +3,7 @@ Database models
 """
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -141,8 +142,18 @@ class Player(models.Model):
         related_name='players',
         blank=True
     )
+    email = models.EmailField(
+        max_length=255,
+        unique=True,
+        null=True,
+        blank=True
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        if self.email and User.objects.filter(email=self.email).exists():
+            raise ValidationError(f"A user with email '{self.email}' already exists.")
 
     def __str__(self):
         return self.name

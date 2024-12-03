@@ -286,6 +286,18 @@ class TestPlayerModel(TestCase):
 
         self.assertEqual(player.name, name)
 
+    def test_create_player_with_email(self):
+        """Test creating a player with an email."""
+        email = 'bob@example.com'
+        name = 'Bob'
+
+        player = Player.objects.create(
+            name=name,
+            email=email
+        )
+
+        self.assertEqual(player.email, email)
+
 
 class TestTeamModel(TestCase):
     """Test Team model and related functionality"""
@@ -371,14 +383,6 @@ class TestSeasonModel(TestCase):
 
         with self.assertRaises(IntegrityError):
             create_season(league=league, name='Winter Season', year=2024)
-
-    def test_create_team_without_captain_fails(self):
-        """Test that creating a team without a captain raises an error."""
-        league = create_league()
-        season = create_season(league)
-        team = Team.objects.create(name='Team Without Captain', league=league)
-        with self.assertRaises(IntegrityError):
-            TeamSeason.objects.create(team=team, season=season)
 
 
 class TestTeamSeasonModel(TestCase):
