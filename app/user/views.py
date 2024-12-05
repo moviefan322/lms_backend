@@ -4,6 +4,7 @@ Views for the user API
 from rest_framework import generics, authentication, permissions
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.settings import api_settings
+from django.utils.timezone import now
 
 from user.serializers import (
     UserSerializer,
@@ -29,5 +30,11 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
-        """Retrieve and return authenticated user"""
-        return self.request.user
+        """Retrieve and return the authenticated user"""
+        user = self.request.user
+
+        # Update last_login whenever this endpoint is accessed
+        user.last_login = now()
+        user.save(update_fields=['last_login'])
+
+        return user
