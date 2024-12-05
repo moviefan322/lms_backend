@@ -33,8 +33,11 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
         """Retrieve and return the authenticated user"""
         user = self.request.user
 
-        # Update last_login whenever this endpoint is accessed
+        prev_login = user.last_login
+
         user.last_login = now()
         user.save(update_fields=['last_login'])
+
+        user.last_login = prev_login
 
         return user

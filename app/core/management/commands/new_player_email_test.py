@@ -21,6 +21,3 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.WARNING(
                 f"Player with email {email} already exists."))
-
-        Player.objects.filter(email=email).delete()
-        User.objects.filter(email=email).delete()
